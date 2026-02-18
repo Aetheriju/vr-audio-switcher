@@ -9,7 +9,10 @@ Run once:  python setup_wizard.py
 import ctypes
 import csv
 import json
+import logging
+import logging.handlers
 import os
+import platform
 import subprocess
 import sys
 import threading
@@ -23,8 +26,8 @@ CONFIG_PATH = SCRIPT_DIR / "config.json"
 VM_DEVICES_PATH = SCRIPT_DIR / "vm_devices.json"
 SVCL_PATH = SCRIPT_DIR / "svcl.exe"
 SVCL_URL = "https://www.nirsoft.net/utils/svcl-x64.zip"
-VM_DLL = r"C:\Program Files (x86)\VB\Voicemeeter\VoicemeeterRemote64.dll"
-VM_EXE = r"C:\Program Files (x86)\VB\Voicemeeter\voicemeeterpro.exe"
+WIZARD_LOG_PATH = SCRIPT_DIR / "wizard.log"
+from vm_path import find_dll, find_exe, is_vm_process
 
 REQUIRED_PACKAGES = ["psutil", "pystray", "PIL"]  # PIL = Pillow
 
@@ -44,7 +47,10 @@ class VMDeviceEnumerator:
     TYPE_MAP = {1: "mme", 3: "wdm", 5: "ks"}
 
     def __init__(self):
-        self._dll = ctypes.WinDLL(VM_DLL)
+        dll_path = find_dll()
+        if not dll_path:
+            raise RuntimeError("VoiceMeeter DLL not found — is VoiceMeeter installed?")
+        self._dll = ctypes.WinDLL(str(dll_path))
         ret = self._dll.VBVMR_Login()
         if ret not in (0, 1):
             raise RuntimeError(f"VoiceMeeter login failed (code {ret})")
@@ -105,7 +111,7 @@ def query_svcl_devices() -> list[dict]:
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         devices = []
-        with open(tmp, newline="", encoding="utf-8-sig") as f:
+        with open(tmp, newline="", encoding="utf-8-sig", errors="replace") as f:
             for row in csv.DictReader(f):
                 devices.append({
                     "name": row.get("Name", "").strip(),
@@ -186,12 +192,13 @@ def run_elevated_ps(script: str) -> tuple[bool, str]:
         result_path.unlink(missing_ok=True)
 
         # Run elevated
+        ctypes.windll.shell32.ShellExecuteW.restype = ctypes.c_void_p
         ret = ctypes.windll.shell32.ShellExecuteW(
             None, "runas", "powershell.exe",
             f'-ExecutionPolicy Bypass -WindowStyle Hidden -File "{script_path}"',
             None, 0,  # SW_HIDE
         )
-        if ret <= 32:
+        if (ret or 0) <= 32:
             return False, "UAC prompt was declined or elevation failed"
 
         # Wait for result (up to 10 seconds)
@@ -262,6 +269,7 @@ class SetupWizard:
         self._svcl_devices: list[dict] = []
         self._vm_launched_by_us = False
 
+        self._setup_file_logging()
         self._build_ui()
         self._center()
         self._check_prerequisites()
@@ -314,6 +322,12 @@ class SetupWizard:
                 btn.pack(side="right", padx=(4, 0))
                 self.chk_btns[key] = btn
 
+        tk.Label(self.chk_frame,
+                 text="Note: svcl.exe may trigger antivirus false positives. "
+                      "It is safe \u2014 see nirsoft.net",
+                 bg=self.bg, fg="#ff9800", font=("Segoe UI", 8),
+                 ).pack(anchor="w", pady=(2, 0))
+
         # --- Before you begin ---
         self._sec(main, "BEFORE YOU BEGIN")
         ready_frame = tk.Frame(main, bg=self.hint_bg, padx=12, pady=8)
@@ -332,24 +346,12 @@ class SetupWizard:
         dev_frame = tk.Frame(main, bg=self.bg)
         dev_frame.pack(fill="x", pady=(0, 4))
 
-        # Music browser
-        tk.Label(dev_frame, text="Music browser (plays Spotify, YouTube, etc.):",
-                 bg=self.bg, fg=self.fg,
-                 font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 0))
-        self.browser_var = tk.StringVar()
-        browser_frame = tk.Frame(dev_frame, bg=self.bg)
-        browser_frame.pack(fill="x", pady=(1, 2))
-        for bname, bexe in [
-            ("Chrome", "chrome.exe"), ("Firefox", "firefox.exe"),
-            ("Edge", "msedge.exe"), ("Brave", "brave.exe"),
-        ]:
-            tk.Radiobutton(
-                browser_frame, text=bname, variable=self.browser_var,
-                value=bexe, bg=self.bg, fg=self.fg,
-                selectcolor="#333333", activebackground=self.bg,
-                activeforeground=self.fg, font=("Segoe UI", 9),
-            ).pack(side="left", padx=(0, 12))
-        self.browser_var.set("chrome.exe")  # default
+        # Audio app note
+        tk.Label(dev_frame,
+                 text="All audio apps (browsers, Spotify, media players, etc.) "
+                      "are managed automatically \u2014 VRChat is excluded.",
+                 bg=self.bg, fg=self.ok_fg, wraplength=480, justify="left",
+                 font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 4))
 
         for label_text, var_name, combo_name in [
             ("Microphone (your physical mic):", "mic_var", "mic_combo"),
@@ -439,12 +441,29 @@ class SetupWizard:
         y = (self.root.winfo_screenheight() - h) // 2
         self.root.geometry(f"+{x}+{y}")
 
+    def _setup_file_logging(self):
+        self._file_log = logging.getLogger("setup_wizard")
+        self._file_log.setLevel(logging.DEBUG)
+        handler = logging.handlers.RotatingFileHandler(
+            WIZARD_LOG_PATH, maxBytes=500_000, backupCount=1,
+            encoding="utf-8")
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(message)s"))
+        self._file_log.addHandler(handler)
+        self._file_log.info("=== Setup Wizard Started ===")
+        self._file_log.info("Python %s on %s %s",
+                            sys.version.split()[0], platform.system(),
+                            platform.version())
+        self._file_log.info("Script dir: %s", SCRIPT_DIR)
+
     def _log(self, msg):
         self.log_text.config(state="normal")
         self.log_text.insert("end", msg + "\n")
         self.log_text.see("end")
         self.log_text.config(state="disabled")
         self.root.update_idletasks()
+        if msg.strip():
+            self._file_log.info(msg)
 
     def _set_check(self, key, ok):
         lbl = self.chk_labels[key]
@@ -464,9 +483,9 @@ class SetupWizard:
         if py_ok:
             self._log(f"Python {sys.version.split()[0]}")
 
-        vm_ok = Path(VM_DLL).exists()
+        vm_ok = find_dll() is not None
         self._set_check("voicemeeter", vm_ok)
-        self._log("VoiceMeeter Banana " + ("found" if vm_ok else "NOT FOUND"))
+        self._log("VoiceMeeter " + ("found" if vm_ok else "NOT FOUND"))
 
         svcl_ok = SVCL_PATH.exists()
         self._set_check("svcl", svcl_ok)
@@ -519,7 +538,22 @@ class SetupWizard:
 
         threading.Thread(target=run, daemon=True).start()
 
+    def _show_av_warning(self):
+        """Show antivirus false positive warning before svcl download."""
+        messagebox.showwarning(
+            "Antivirus Notice",
+            "svcl.exe (NirSoft SoundVolumeCommandLine) is sometimes "
+            "flagged as a false positive by antivirus software.\n\n"
+            "This is a legitimate audio management tool used to switch "
+            "per-app audio devices. It is safe.\n\n"
+            "If your antivirus blocks or quarantines svcl.exe:\n"
+            "1. Open Windows Security \u2192 Virus & threat protection\n"
+            "2. Protection history \u2192 Allow the blocked file\n"
+            "3. Re-run this setup wizard\n\n"
+            "Source: nirsoft.net (official)")
+
     def _download_svcl(self):
+        self._show_av_warning()
         self._log("Downloading svcl.exe...")
         btn = self.chk_btns.get("svcl")
         if btn:
@@ -610,13 +644,14 @@ class SetupWizard:
         try:
             import psutil
             for p in psutil.process_iter(["name"]):
-                if p.info["name"] and p.info["name"].lower() == "voicemeeterpro.exe":
+                if p.info["name"] and is_vm_process(p.info["name"]):
                     return
         except ImportError:
             pass
-        if Path(VM_EXE).exists():
-            self._log("Launching VoiceMeeter Banana...")
-            subprocess.Popen([VM_EXE],
+        vm_exe = find_exe()
+        if vm_exe:
+            self._log(f"Launching VoiceMeeter ({vm_exe.name})...")
+            subprocess.Popen([str(vm_exe)],
                              creationflags=subprocess.CREATE_NO_WINDOW)
             self._vm_launched_by_us = True
             time.sleep(4)
@@ -642,9 +677,9 @@ class SetupWizard:
 
         # ---- Phase 1: Auto-install missing dependencies ----
 
-        # VoiceMeeter Banana
-        if not Path(VM_DLL).exists():
-            log("VoiceMeeter Banana not found \u2014 downloading installer...")
+        # VoiceMeeter
+        if not find_dll():
+            log("VoiceMeeter not found \u2014 downloading installer...")
             try:
                 import urllib.request
                 installer = SCRIPT_DIR / "_VoicemeeterProSetup.exe"
@@ -690,8 +725,12 @@ class SetupWizard:
                 zip_path.unlink(missing_ok=True)
                 ok = SVCL_PATH.exists()
                 set_check("svcl", ok)
-                log("svcl.exe \u2713" if ok else "svcl download failed")
-                if not ok:
+                if ok:
+                    log("svcl.exe \u2713")
+                else:
+                    log("svcl.exe was downloaded but is missing \u2014 "
+                        "your antivirus may have quarantined it.")
+                    log("Add an exception for svcl.exe and re-run setup.")
                     self._ui(lambda: self.setup_btn.config(state="normal"))
                     return
             except Exception as e:
@@ -723,7 +762,6 @@ class SetupWizard:
         # ---- Phase 2: Detect devices if not already done ----
         mic_name = self.mic_var.get()
         vr_name = self.vr_var.get()
-        browser = self.browser_var.get()
 
         if not mic_name or not vr_name:
             log("Detecting audio devices...")
@@ -765,11 +803,12 @@ class SetupWizard:
         config = {
             "poll_interval_seconds": 3,
             "steamvr_process": "vrserver.exe",
-            "target_process": browser,
+            "exclude_processes": ["vrchat.exe"],
             "svcl_path": "svcl.exe",
             "vr_device": vaio_id,
             "debounce_seconds": 5,
             "music_strip": 3,
+            "vrchat_mic_confirmed": False,
         }
         try:
             with open(CONFIG_PATH, "w") as f:
@@ -801,8 +840,14 @@ class SetupWizard:
         script = str(SCRIPT_DIR / "vr_audio_switcher.py")
 
         try:
-            desktop = Path(os.environ["USERPROFILE"]) / "OneDrive" / "Desktop"
-            if not desktop.exists():
+            # Use Windows Shell to find the real Desktop path (handles OneDrive redirection)
+            import winreg
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                        r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders") as key:
+                    desktop_raw, _ = winreg.QueryValueEx(key, "Desktop")
+                    desktop = Path(os.path.expandvars(desktop_raw))
+            except OSError:
                 desktop = Path(os.environ["USERPROFILE"]) / "Desktop"
             create_shortcut(str(pythonw),
                             str(desktop / "VR Audio Switcher.lnk"),
@@ -931,8 +976,7 @@ class SetupWizard:
         try:
             import psutil
             for proc in psutil.process_iter(["name"]):
-                if (proc.info["name"]
-                        and proc.info["name"].lower() == "voicemeeterpro.exe"):
+                if proc.info["name"] and is_vm_process(proc.info["name"]):
                     proc.kill()
                     self._log("VoiceMeeter shut down (tray app will restart it)")
                     break

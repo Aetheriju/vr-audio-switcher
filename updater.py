@@ -7,10 +7,10 @@ a background check that can be called from the tray menu.
 
 import json
 import logging
-import os
 import subprocess
 import sys
 import threading
+import time
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -46,6 +46,8 @@ def remote_version() -> str | None:
         with urllib.request.urlopen(req, timeout=CHECK_TIMEOUT) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         # GitHub API returns base64-encoded content
+        if "content" not in data:
+            return None
         import base64
         content = base64.b64decode(data["content"]).decode("utf-8").strip()
         return content
@@ -152,9 +154,13 @@ def do_update() -> tuple[bool, str]:
 
 
 def restart_app():
-    """Restart the current script."""
+    """Restart the current script by launching a new process and exiting."""
     python = sys.executable
-    os.execv(python, [python] + sys.argv)
+    subprocess.Popen([python] + sys.argv,
+                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    # Give the new process time to start before we release the mutex
+    time.sleep(1)
+    sys.exit(0)
 
 
 def check_and_prompt() -> bool:

@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import ttk, simpledialog
 from pathlib import Path
 
-DLL_PATH = r"C:\Program Files (x86)\VB\Voicemeeter\VoicemeeterRemote64.dll"
+from vm_path import find_dll
 MUTEX_NAME = "Global\\VRAudioMixerMutex"
 PRESETS_PATH = Path(__file__).parent.resolve() / "presets.json"
 STATE_PATH = Path(__file__).parent.resolve() / "state.json"
@@ -161,16 +161,21 @@ def save_presets(presets):
 # ---------------------------------------------------------------------------
 class VM:
     def __init__(self):
-        self.dll = ctypes.WinDLL(DLL_PATH)
+        dll_path = find_dll()
+        if not dll_path:
+            raise RuntimeError("VoiceMeeter DLL not found — is VoiceMeeter installed?")
+        self.dll = ctypes.WinDLL(str(dll_path))
         ret = self.dll.VBVMR_Login()
         if ret not in (0, 1):
             raise RuntimeError(f"VoiceMeeter Login failed ({ret})")
-        time.sleep(0.05)
+        time.sleep(0.2)
 
     def get(self, param):
         self.dll.VBVMR_IsParametersDirty()
         buf = ctypes.c_float()
-        self.dll.VBVMR_GetParameterFloat(param.encode(), ctypes.byref(buf))
+        ret = self.dll.VBVMR_GetParameterFloat(param.encode(), ctypes.byref(buf))
+        if ret != 0:
+            return 0.0
         return round(buf.value, 1)
 
     def set(self, param, value):

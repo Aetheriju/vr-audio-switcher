@@ -63,8 +63,10 @@ if %errorlevel% neq 0 (
 :: Clean up installer
 del "%INSTALLER%" >nul 2>&1
 
-:: Refresh PATH for this session
-set "PATH=%LOCALAPPDATA%\Programs\Python\Python313;%LOCALAPPDATA%\Programs\Python\Python313\Scripts;%PATH%"
+:: Refresh PATH — find the newest Python install dynamically
+for /d %%D in ("%LOCALAPPDATA%\Programs\Python\Python3*") do (
+    set "PATH=%%D;%%D\Scripts;%PATH%"
+)
 
 :: Verify Python is now available
 python --version >nul 2>&1
@@ -98,4 +100,9 @@ if %errorlevel% neq 0 (
     echo.
     echo  Something went wrong. Check the error above.
     pause
+) else (
+    echo.
+    echo  Setup wizard launched successfully.
+    echo  You can close this window.
+    timeout /t 5 >nul
 )
