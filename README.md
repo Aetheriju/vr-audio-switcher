@@ -2,7 +2,7 @@
 
 **One-click audio management for VRChat + Steam Link.**
 
-You play VRChat on Quest via Steam Link. You want your Spotify/YouTube music to play through your VRChat mic so friends can hear it — but you also want independent volume control over what *they* hear vs. what *you* hear, and you want everything to switch back to your desktop speakers automatically when you close SteamVR. That's exactly what this does.
+You play VRChat on Quest via Steam Link. You want music from *any* app — Spotify, YouTube, SoundCloud, VLC, whatever you use — to play through your VRChat mic so friends can hear it. But you also want independent volume control over what *they* hear vs. what *you* hear, and you want everything to switch back to your desktop speakers automatically when you close SteamVR. That's exactly what this does.
 
 ## What It Does
 
@@ -26,30 +26,32 @@ You play VRChat on Quest via Steam Link. You want your Spotify/YouTube music to 
 ## How It Works
 
 ```
-                    ┌─────────────────────────────┐
-  Physical Mic ───► │  VoiceMeeter Banana          │
-  (Steam Streaming  │                              │
-   Microphone)      │  Strip[0] (Mic) ──► B1 ──────┼──► VRChat (mic input)
-                    │                              │
-  All Audio Apps ─► │  Strip[3] (VAIO) ──► B2 ─────┼──► Quest Headset
-  (Spotify/Chrome/  │         └──► B1 (if Public) ─┼──► VRChat (music in mic)
-   VLC/etc.)        │                              │
-                    │                              │
-                    │  Mixer controls Strip/Bus    │
-                    │  gains independently         │
-                    └─────────────────────────────┘
+                      ┌──────────────────────────────┐
+  Physical Mic ─────► │  VoiceMeeter Banana           │
+  (your headset mic)  │                               │
+                      │  Strip[0] (Mic) ──► B1 ───────┼──► VRChat (mic input)
+                      │                               │
+  Any Audio App ────► │  Strip[3] (VAIO) ──► B2 ──────┼──► VR Headset (you hear)
+  (Spotify, YouTube,  │         └──► B1 (if Public) ──┼──► VRChat (friends hear)
+   VLC, browser, etc) │                               │
+                      │  Mixer controls Strip/Bus     │
+                      │  gains independently          │
+                      └──────────────────────────────┘
+
+  VRChat is automatically excluded — its audio always stays on your headset.
+  All other apps with active audio are switched together.
 ```
 
-**Desktop mode:** All audio apps output directly to your speakers (Soundbar, headphones, etc). VoiceMeeter runs silently in the background with no effect.
+**Desktop mode:** All your apps output directly to your speakers (soundbar, headphones, etc). VoiceMeeter runs silently in the background with no effect.
 
-**VR modes:** All audio apps (except VRChat) are routed to VoiceMeeter's virtual input (VAIO). VoiceMeeter routes the audio to B2 (your headset via "Listen to this device") and optionally B1 (VRChat mic). The Mixer UI controls the gain split so you can make music quieter for friends while keeping it loud for yourself.
+**VR modes:** Every audio app on your system (except VRChat) is automatically routed to VoiceMeeter's virtual input (VAIO). VoiceMeeter sends the audio to B2 (your headset via "Listen to this device") and optionally B1 (VRChat mic). It doesn't matter if you're using Spotify, a browser, VLC, or anything else — they all get switched together. The Mixer UI controls the gain split so you can make music quieter for friends while keeping it loud for yourself.
 
 ## Requirements
 
 - **Windows 10/11**
 - **Python 3.10+** — [python.org/downloads](https://www.python.org/downloads/)
 - **VoiceMeeter Banana** — [vb-audio.com/Voicemeeter/banana](https://vb-audio.com/Voicemeeter/banana.htm) (free)
-- **Steam Link** + **Quest headset** (or any VR setup with Steam Streaming audio devices)
+- **A VR headset with audio** — built for Quest via Steam Link, but works with any VR setup that has its own audio output device
 
 ## Quick Start
 
