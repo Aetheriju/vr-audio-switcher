@@ -205,69 +205,25 @@ class VoiceMeeterRemote:
 # Audio switcher (wraps svcl.exe)
 # ---------------------------------------------------------------------------
 class AudioSwitcher:
-    # Device ID prefixes to skip when auto-detecting the desktop device.
-    # These are virtual devices or built-in monitor speakers — not what
-    # the user considers "desktop speakers."
-    DEFAULT_EXCLUDE = [
-        "Steam Streaming",
-        "VB-Audio Voicemeeter",
-        "NVIDIA High Definition Audio",
-        "HD Audio Driver for Display Audio",
-        "Realtek",
-    ]
-
     def __init__(self, config: dict):
         self.svcl_path = str(SCRIPT_DIR / config["svcl_path"])
         self.target = config["target_process"]
-        self.desktop_device = config["desktop_device"]  # "auto" or a specific ID
         self.vr_device = config["vr_device"]
-        self.desktop_exclude = config.get("desktop_exclude", self.DEFAULT_EXCLUDE)
 
         if not Path(self.svcl_path).exists():
             raise FileNotFoundError(f"svcl.exe not found at {self.svcl_path}")
 
-    def _find_desktop_device(self) -> str | None:
-        """Find a real physical audio device, skipping virtual/internal ones."""
-        tmp = SCRIPT_DIR / "_default_query.csv"
-        try:
-            subprocess.run(
-                [self.svcl_path, "/scomma", str(tmp),
-                 "/Columns", "Command-Line Friendly ID,Direction,Type,Device State"],
-                capture_output=True, timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW,
-            )
-            with open(tmp, newline="", encoding="utf-8-sig") as f:
-                for row in csv.DictReader(f):
-                    if (row.get("Direction", "").strip() != "Render"
-                            or row.get("Type", "").strip() != "Device"
-                            or row.get("Device State", "").strip() != "Active"):
-                        continue
-                    fid = row["Command-Line Friendly ID"].strip()
-                    if any(ex in fid for ex in self.desktop_exclude):
-                        continue
-                    return fid  # first real hardware device
-        except Exception:
-            logging.exception("Failed to query desktop device")
-        finally:
-            try:
-                tmp.unlink(missing_ok=True)
-            except OSError:
-                pass
-        return None
-
     def switch_to(self, output: AudioOutput) -> bool:
-        """Set Chrome's audio output. Returns True if svcl matched 1+ items."""
+        """Set the target app's audio output. Returns True on success."""
         if not is_process_running(self.target):
-            return False  # Chrome not running — nothing to switch
+            return False
 
         if output == AudioOutput.VR:
             device = self.vr_device
-        elif self.desktop_device.lower() == "auto":
-            device = self._find_desktop_device()
-            if not device:
-                return False  # no real desktop device found
         else:
-            device = self.desktop_device
+            # Always follow the Windows default — adapts automatically
+            # when user switches headphones/speakers/aux/etc.
+            device = "DefaultRenderDevice"
 
         cmd = [self.svcl_path, "/Stdout", "/SetAppDefault", device, "all", self.target]
         try:
@@ -399,7 +355,7 @@ class VRAudioSwitcher:
             self._update_tray()
 
     def _enforce_loop(self):
-        """Periodically re-apply audio to catch Chrome restarts, new tabs, etc."""
+        """Periodically re-apply audio and monitor VoiceMeeter health."""
         while not self._stop.is_set():
             self._stop.wait(ENFORCE_INTERVAL)
             if self._stop.is_set():
@@ -407,8 +363,47 @@ class VRAudioSwitcher:
             try:
                 self._check_mode_request()
                 self._apply(force=True)
+                self._check_voicemeeter_health()
             except Exception:
                 logging.exception("Enforce error")
+
+    def _check_voicemeeter_health(self):
+        """If VoiceMeeter crashed, restart it and restore settings."""
+        vm_running = any(
+            p.name().lower() == "voicemeeterpro.exe"
+            for p in psutil.process_iter(["name"])
+        )
+        if vm_running:
+            return
+        logging.warning("VoiceMeeter not running — restarting...")
+        VM_EXE = r"C:\Program Files (x86)\VB\Voicemeeter\voicemeeterpro.exe"
+        if not Path(VM_EXE).exists():
+            return
+        subprocess.Popen([VM_EXE], creationflags=subprocess.CREATE_NO_WINDOW)
+        time.sleep(4)
+        # Reconnect and restore devices
+        self.vm._logged_in = False
+        self.vm._ensure_connected()
+        if VM_DEVICES_PATH.exists():
+            try:
+                with open(VM_DEVICES_PATH) as f:
+                    devs = json.load(f)
+                for key, name in devs.items():
+                    self.vm.set_string_param(f"{key}.device.wdm", name)
+                logging.info("VoiceMeeter restarted — devices restored")
+            except Exception:
+                logging.exception("Device restore after VM restart failed")
+        # Restore gains from vm_state.json
+        vm_state_path = SCRIPT_DIR / "vm_state.json"
+        if vm_state_path.exists():
+            try:
+                with open(vm_state_path) as f:
+                    params = json.load(f)
+                for k, v in params.items():
+                    self.vm.set_param(k, float(v))
+                logging.info("VoiceMeeter gains restored")
+            except Exception:
+                logging.exception("Gain restore after VM restart failed")
 
     def _on_steamvr_change(self, running: bool):
         """Called by detector when SteamVR starts/stops."""
@@ -423,7 +418,7 @@ class VRAudioSwitcher:
         if self.icon:
             self.icon.icon = create_icon(self._user_mode)
             labels = {
-                UserMode.DESKTOP: "Desktop (Soundbar)",
+                UserMode.DESKTOP: "Desktop",
                 UserMode.AUTO: f"Auto ({self._current_output.name})" if self._current_output else "Auto",
                 UserMode.VR: "Public",
                 UserMode.SILENT_VR: "Private",
@@ -580,7 +575,7 @@ class VRAudioSwitcher:
         menu = pystray.Menu(
             # Hidden default item — left-click cycles modes
             pystray.MenuItem("Cycle", self._cycle_mode, default=True, visible=False),
-            pystray.MenuItem("Desktop (Soundbar)", self._set_mode(UserMode.DESKTOP),
+            pystray.MenuItem("Desktop", self._set_mode(UserMode.DESKTOP),
                              checked=self._is_mode(UserMode.DESKTOP), radio=True),
             pystray.MenuItem("Auto-detect", self._set_mode(UserMode.AUTO),
                              checked=self._is_mode(UserMode.AUTO), radio=True),
@@ -641,6 +636,18 @@ class VRAudioSwitcher:
 def main():
     mutex = acquire_single_instance()
     if mutex is None:
+        # Already running — notify user instead of silent exit
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk(); root.withdraw()
+            messagebox.showinfo(
+                "VR Audio Switcher",
+                "Already running! Look for the icon in your system tray.\n\n"
+                "Right-click the tray icon for options.")
+            root.destroy()
+        except Exception:
+            pass
         sys.exit(0)
 
     # Check for updates before anything else
@@ -655,23 +662,19 @@ def main():
             "steamvr_process": "vrserver.exe",
             "target_process": "chrome.exe",
             "svcl_path": "svcl.exe",
-            "desktop_device": "",
             "vr_device": "",
             "debounce_seconds": 5,
             "music_strip": 3,
         }
         CONFIG_PATH.write_text(json.dumps(default, indent=2))
-        print("Edit desktop_device and vr_device in config.json, then rerun.")
+        print("Run setup_wizard.py first to configure your devices.")
         sys.exit(1)
 
     with open(CONFIG_PATH) as f:
         config = json.load(f)
 
     if not config.get("vr_device"):
-        print("vr_device not set in config.json.")
-        sys.exit(1)
-    if not config.get("desktop_device"):
-        print("desktop_device not set in config.json.")
+        print("vr_device not set. Run setup_wizard.py to configure.")
         sys.exit(1)
 
     # Rotate log at 1 MB, keep 1 backup

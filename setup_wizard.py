@@ -314,14 +314,45 @@ class SetupWizard:
                 btn.pack(side="right", padx=(4, 0))
                 self.chk_btns[key] = btn
 
+        # --- Before you begin ---
+        self._sec(main, "BEFORE YOU BEGIN")
+        ready_frame = tk.Frame(main, bg=self.hint_bg, padx=12, pady=8)
+        ready_frame.pack(fill="x", pady=(0, 4))
+        for instruction in [
+            "\u2022 Turn on your VR headset and make sure it's connected",
+            "\u2022 Make sure your speakers or headphones are plugged in",
+            "\u2022 Have VRChat installed (you'll need it for one setting)",
+        ]:
+            tk.Label(ready_frame, text=instruction, bg=self.hint_bg,
+                     fg=self.fg, font=("Segoe UI", 9),
+                     anchor="w").pack(anchor="w", pady=1)
+
         # --- Step 2: Devices ---
         self._sec(main, "STEP 2 \u2014 Select Your Devices")
         dev_frame = tk.Frame(main, bg=self.bg)
         dev_frame.pack(fill="x", pady=(0, 4))
 
+        # Music browser
+        tk.Label(dev_frame, text="Music browser (plays Spotify, YouTube, etc.):",
+                 bg=self.bg, fg=self.fg,
+                 font=("Segoe UI", 9)).pack(anchor="w", pady=(4, 0))
+        self.browser_var = tk.StringVar()
+        browser_frame = tk.Frame(dev_frame, bg=self.bg)
+        browser_frame.pack(fill="x", pady=(1, 2))
+        for bname, bexe in [
+            ("Chrome", "chrome.exe"), ("Firefox", "firefox.exe"),
+            ("Edge", "msedge.exe"), ("Brave", "brave.exe"),
+        ]:
+            tk.Radiobutton(
+                browser_frame, text=bname, variable=self.browser_var,
+                value=bexe, bg=self.bg, fg=self.fg,
+                selectcolor="#333333", activebackground=self.bg,
+                activeforeground=self.fg, font=("Segoe UI", 9),
+            ).pack(side="left", padx=(0, 12))
+        self.browser_var.set("chrome.exe")  # default
+
         for label_text, var_name, combo_name in [
             ("Microphone (your physical mic):", "mic_var", "mic_combo"),
-            ("Desktop speakers (for non-VR mode):", "spk_var", "spk_combo"),
             ("VR headset audio (where you hear music in VR):",
              "vr_var", "vr_combo"),
         ]:
@@ -333,6 +364,13 @@ class SetupWizard:
                                  state="readonly", width=55)
             combo.pack(fill="x", pady=(1, 2))
             setattr(self, combo_name, combo)
+
+        # Desktop speakers note
+        tk.Label(dev_frame,
+                 text="Desktop mode automatically uses your Windows default "
+                      "speakers \u2014 no selection needed.",
+                 bg=self.bg, fg=self.desc_fg,
+                 font=("Segoe UI", 8)).pack(anchor="w", pady=(4, 0))
 
         self.refresh_btn = tk.Button(
             dev_frame, text="\u21bb Refresh Devices", bg=self.btn_bg,
@@ -544,14 +582,8 @@ class SetupWizard:
                         break
                 self.mic_combo.current(sel)
 
-            # Desktop speaker dropdown (VoiceMeeter WDM output devices)
-            wdm_outputs = [d for d in vm_outputs if d["type"] == "wdm"]
-            spk_names = (["Auto-detect (recommended)"]
-                         + [d["name"] for d in wdm_outputs])
-            self.spk_combo["values"] = spk_names
-            self.spk_combo.current(0)
-
             # VR headset dropdown — physical output devices (exclude VoiceMeeter)
+            wdm_outputs = [d for d in vm_outputs if d["type"] == "wdm"]
             vr_names = [d["name"] for d in wdm_outputs
                         if "voicemeeter" not in d["name"].lower()]
             self.vr_combo["values"] = vr_names
@@ -691,7 +723,7 @@ class SetupWizard:
         # ---- Phase 2: Detect devices if not already done ----
         mic_name = self.mic_var.get()
         vr_name = self.vr_var.get()
-        spk_name = self.spk_var.get()
+        browser = self.browser_var.get()
 
         if not mic_name or not vr_name:
             log("Detecting audio devices...")
@@ -701,7 +733,6 @@ class SetupWizard:
             time.sleep(0.5)
             mic_name = self.mic_var.get()
             vr_name = self.vr_var.get()
-            spk_name = self.spk_var.get()
 
         if not mic_name:
             log("No microphone detected. Please select one and try again.")
@@ -734,9 +765,8 @@ class SetupWizard:
         config = {
             "poll_interval_seconds": 3,
             "steamvr_process": "vrserver.exe",
-            "target_process": "chrome.exe",
+            "target_process": browser,
             "svcl_path": "svcl.exe",
-            "desktop_device": "auto" if "Auto" in spk_name else spk_name,
             "vr_device": vaio_id,
             "debounce_seconds": 5,
             "music_strip": 3,
