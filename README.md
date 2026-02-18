@@ -49,23 +49,24 @@ You play VRChat on Quest via Steam Link. You want your Spotify/YouTube music to 
 
 ## Quick Start
 
-### 1. Clone the repo
+### 1. Download
 ```bash
 git clone https://github.com/Aetheriju/vr-audio-switcher.git
 cd vr-audio-switcher
 ```
 
-### 2. Run the setup wizard
-```bash
-python setup_wizard.py
-```
+Or just [download the ZIP](https://github.com/Aetheriju/vr-audio-switcher/archive/refs/heads/main.zip) and extract it.
 
-The wizard will:
-- Install Python dependencies
-- Download `svcl.exe` (NirSoft per-app audio routing tool)
-- Detect your audio devices
-- Generate your config files
-- Create desktop and startup shortcuts
+### 2. Double-click `install.bat`
+
+That's it. The installer handles everything automatically:
+- Downloads and installs **Python** if you don't have it
+- Downloads **svcl.exe** (NirSoft per-app audio routing tool)
+- Installs Python packages
+- Downloads and runs the **VoiceMeeter Banana** installer if needed
+- Detects your audio devices
+- Configures "Listen to this device" for VR audio routing
+- Creates desktop and startup shortcuts
 
 ### 3. You're done
 
