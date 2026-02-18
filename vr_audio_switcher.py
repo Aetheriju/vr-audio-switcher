@@ -500,6 +500,40 @@ class VRAudioSwitcher:
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
 
+    def _check_updates(self, icon, item):
+        """Check for updates in background, prompt if available."""
+        from updater import update_available, do_update, restart_app
+        def _run():
+            avail, local, remote = update_available()
+            if not avail:
+                import tkinter as tk
+                from tkinter import messagebox
+                root = tk.Tk(); root.withdraw()
+                messagebox.showinfo("Up to Date",
+                                    f"You're on the latest version (v{local}).")
+                root.destroy()
+                return
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk(); root.withdraw()
+            if messagebox.askyesno(
+                "Update Available",
+                f"v{remote} is available (you have v{local}).\n\n"
+                "Update now? The app will restart.",
+            ):
+                root.destroy()
+                ok, msg = do_update()
+                if ok:
+                    icon.stop()
+                    restart_app()
+                else:
+                    root2 = tk.Tk(); root2.withdraw()
+                    messagebox.showwarning("Update Failed", msg)
+                    root2.destroy()
+            else:
+                root.destroy()
+        threading.Thread(target=_run, daemon=True).start()
+
     def _quit(self, icon, item):
         self._stop.set()
         self.detector.stop()
@@ -556,6 +590,7 @@ class VRAudioSwitcher:
                              checked=self._is_mode(UserMode.VR), radio=True),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Mixer", self._open_mixer),
+            pystray.MenuItem("Check for Updates", self._check_updates),
             pystray.MenuItem("Quit", self._quit),
         )
 
@@ -574,10 +609,30 @@ class VRAudioSwitcher:
                 self._apply()
                 self._write_state()
                 threading.Thread(target=self._enforce_loop, daemon=True).start()
+                threading.Thread(target=self._update_check_loop,
+                                 daemon=True).start()
             except Exception:
                 logging.exception("Setup error")
 
         self.icon.run(setup=on_setup)
+
+    def _update_check_loop(self):
+        """Periodically check for updates in the background (every 6 hours)."""
+        UPDATE_INTERVAL = 6 * 3600  # 6 hours
+        while not self._stop.wait(UPDATE_INTERVAL):
+            try:
+                from updater import update_available
+                avail, local, remote = update_available()
+                if avail:
+                    logging.info("Background update check: v%s available "
+                                 "(have v%s)", remote, local)
+                    if self.icon:
+                        self.icon.notify(
+                            f"Update v{remote} available — right-click "
+                            f"tray icon \u2192 Check for Updates",
+                            "VR Audio Switcher")
+            except Exception:
+                logging.debug("Background update check failed", exc_info=True)
 
 
 # ---------------------------------------------------------------------------
