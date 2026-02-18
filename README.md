@@ -6,7 +6,7 @@ You play VRChat on Quest via Steam Link. You want your Spotify/YouTube music to 
 
 ## What It Does
 
-- **Auto-detects SteamVR** — switches Chrome's audio output to VoiceMeeter when SteamVR launches, back to your speakers when it closes
+- **Auto-detects SteamVR** — switches all your audio apps (Spotify, Chrome, VLC, etc.) to VoiceMeeter when SteamVR launches, back to your speakers when it closes. VRChat audio is never touched.
 - **4 audio modes** with one-click tray icon switching:
   - **Desktop** (blue) — music plays through your speakers, VoiceMeeter bypassed
   - **Auto** (green) — follows SteamVR state, defaults to Private behavior
@@ -19,6 +19,9 @@ You play VRChat on Quest via Steam Link. You want your Spotify/YouTube music to 
   - Bass / Mid / Treble EQ
 - **Preset system** — save, load, rename, reorder audio profiles with drag-and-drop
 - **Full VoiceMeeter lifecycle** — auto-launches VoiceMeeter on startup, persists all settings (gains, EQ, device assignments) across restarts, shuts down cleanly on quit
+- **Settings menu** — configure excluded apps, adjust polling/debounce from the tray
+- **Auto-updater** — checks for new versions in the background, one-click update from the tray
+- **Clean uninstall** — remove shortcuts, configs, and state files from the tray menu
 
 ## How It Works
 
@@ -28,17 +31,18 @@ You play VRChat on Quest via Steam Link. You want your Spotify/YouTube music to 
   (Steam Streaming  │                              │
    Microphone)      │  Strip[0] (Mic) ──► B1 ──────┼──► VRChat (mic input)
                     │                              │
-  Chrome ─────────► │  Strip[3] (VAIO) ──► B2 ─────┼──► Quest Headset
-  (YouTube/Spotify) │         └──► B1 (if Public) ─┼──► VRChat (music in mic)
+  All Audio Apps ─► │  Strip[3] (VAIO) ──► B2 ─────┼──► Quest Headset
+  (Spotify/Chrome/  │         └──► B1 (if Public) ─┼──► VRChat (music in mic)
+   VLC/etc.)        │                              │
                     │                              │
                     │  Mixer controls Strip/Bus    │
                     │  gains independently         │
                     └─────────────────────────────┘
 ```
 
-**Desktop mode:** Chrome outputs directly to your speakers (Soundbar, headphones, etc). VoiceMeeter runs silently in the background with no effect.
+**Desktop mode:** All audio apps output directly to your speakers (Soundbar, headphones, etc). VoiceMeeter runs silently in the background with no effect.
 
-**VR modes:** Chrome outputs to VoiceMeeter's virtual input (VAIO). VoiceMeeter routes the audio to B2 (your headset via "Listen to this device") and optionally B1 (VRChat mic). The Mixer UI controls the gain split so you can make music quieter for friends while keeping it loud for yourself.
+**VR modes:** All audio apps (except VRChat) are routed to VoiceMeeter's virtual input (VAIO). VoiceMeeter routes the audio to B2 (your headset via "Listen to this device") and optionally B1 (VRChat mic). The Mixer UI controls the gain split so you can make music quieter for friends while keeping it loud for yourself.
 
 ## Requirements
 
@@ -70,7 +74,9 @@ That's it. The installer handles everything automatically:
 
 ### 3. You're done
 
-The tray icon appears in your system tray. Left-click to cycle modes, right-click for the full menu. Launch the Mixer from the right-click menu to fine-tune volumes and save presets.
+The tray icon appears in your system tray. Left-click to cycle modes, right-click for the full menu including Mixer, Settings, VRChat Mic Help, Check for Updates, and Uninstall.
+
+**First launch:** You'll get a one-time reminder to set your VRChat microphone to "Voicemeeter Out B1". This is the only in-game step needed.
 
 ## Manual Setup
 
@@ -93,16 +99,17 @@ If you prefer to configure manually instead of using the wizard:
    {
      "poll_interval_seconds": 3,
      "steamvr_process": "vrserver.exe",
-     "target_process": "chrome.exe",
+     "exclude_processes": ["vrchat.exe"],
      "svcl_path": "svcl.exe",
-     "desktop_device": "auto",
      "vr_device": "<VoiceMeeter VAIO Friendly ID from svcl>",
      "debounce_seconds": 5,
-     "music_strip": 3
+     "music_strip": 3,
+     "vrchat_mic_confirmed": false
    }
    ```
-   - `desktop_device`: Set to `"auto"` to auto-detect your physical speakers, or paste a specific svcl Friendly ID.
+   - `exclude_processes`: Apps whose audio should NOT be switched (VRChat is always excluded). All other audio apps are switched automatically.
    - `vr_device`: The svcl Friendly ID for "Voicemeeter Input" (look for `VB-Audio Voicemeeter VAIO\Device\Voicemeeter Input\Render`).
+   - You can also add apps to the exclusion list later from the tray Settings menu.
 
 5. Create `vm_devices.json` with your mic device name (as shown in VoiceMeeter):
    ```json
@@ -113,7 +120,7 @@ If you prefer to configure manually instead of using the wizard:
 
 6. Set up VoiceMeeter Banana:
    - **Strip[0]** hardware input: your microphone
-   - **Strip[3]** (VAIO): this is where Chrome audio arrives — no setup needed
+   - **Strip[3]** (VAIO): this is where all app audio arrives — no setup needed
    - Enable "Listen to this device" on **Voicemeeter Out B2** in Windows Sound settings, targeting your Quest/Steam Streaming Speakers
 
 7. Run:
@@ -123,7 +130,7 @@ If you prefer to configure manually instead of using the wizard:
 
 ## VoiceMeeter "Listen to this device" Setup
 
-This is the one Windows setting that bridges VoiceMeeter's B2 output to your Quest headset:
+The setup wizard configures this automatically (with a UAC prompt). If it fails or you need to do it manually:
 
 1. Open **Windows Sound Settings** → **More sound settings**
 2. Go to the **Recording** tab
@@ -137,8 +144,8 @@ This setting persists across reboots — you only need to do it once.
 
 ## Modes Explained
 
-| Mode | Icon | Chrome Output | Music in Headset | Music in VRChat Mic | Use Case |
-|------|------|--------------|-----------------|--------------------|----|
+| Mode | Icon | Audio Apps Output | Music in Headset | Music in VRChat Mic | Use Case |
+|------|------|------------------|-----------------|--------------------|----|
 | Desktop | Blue | Your speakers | No | No | Normal desktop use |
 | Auto | Green | Follows SteamVR | When VR active | No | Default — hands-free switching |
 | Private | Yellow | VoiceMeeter | Yes | No | Personal listening in VR |
@@ -173,10 +180,11 @@ The app automatically saves and restores VoiceMeeter device assignments and gain
 - Check that Strip[0] in VoiceMeeter shows your physical mic as the input device
 - Verify Strip[0].B1 routing is enabled (the app enforces this every 15 seconds)
 
-**Chrome audio not switching:**
-- Chrome must be running when the switch happens
+**Audio apps not switching:**
+- At least one audio app (Spotify, Chrome, etc.) must be playing or have an active audio session
 - The app uses `svcl.exe` for per-app audio routing — make sure it's in the project directory
 - Check `switcher.log` for errors
+- Open Settings from the tray menu to check if the app is accidentally excluded
 
 **"svcl.exe not found":**
 Run `python setup_wizard.py` to download it, or manually download [svcl-x64.zip](https://www.nirsoft.net/utils/svcl-x64.zip) and extract `svcl.exe` to the project directory.
@@ -191,9 +199,11 @@ Windows may hide new tray icons. Click the **^** arrow in the system tray to fin
 
 | File | Purpose |
 |------|---------|
-| `vr_audio_switcher.py` | Main tray app — SteamVR detection, mode switching, VoiceMeeter control |
+| `vr_audio_switcher.py` | Main tray app — SteamVR detection, mode switching, VoiceMeeter control, settings, uninstall |
 | `mixer.py` | Mixer UI — volume/EQ sliders, presets, drag-and-drop |
 | `setup_wizard.py` | First-run setup — device detection, config generation, svcl download |
+| `updater.py` | Auto-updater — checks GitHub releases, downloads and applies updates |
+| `vm_path.py` | VoiceMeeter detection — finds DLL/EXE via Windows registry |
 | `config.json` | User config — device IDs, polling settings |
 | `vm_devices.json` | Persisted VoiceMeeter device assignments |
 | `vm_state.json` | Persisted VoiceMeeter gain/EQ values |
