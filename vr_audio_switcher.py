@@ -588,6 +588,11 @@ def main():
     if mutex is None:
         sys.exit(0)
 
+    # Check for updates before anything else
+    from updater import check_and_prompt
+    if not check_and_prompt():
+        sys.exit(0)
+
     if not CONFIG_PATH.exists():
         print(f"Config not found at {CONFIG_PATH}. Creating default...")
         default = {
