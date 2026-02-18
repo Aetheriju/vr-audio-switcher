@@ -593,21 +593,128 @@ class SetupWizard:
     # Main setup action
     # ------------------------------------------------------------------
     def _setup_everything(self):
-        mic_name = self.mic_var.get()
-        spk_name = self.spk_var.get()
-        vr_name = self.vr_var.get()
-
-        if not mic_name:
-            messagebox.showwarning("Setup", "Please select your microphone.")
-            return
-        if not vr_name:
-            messagebox.showwarning("Setup",
-                                   "Please select your VR headset audio output.")
-            return
-
         self.setup_btn.config(state="disabled")
         self._log("")
-        self._log("Setting up...")
+        threading.Thread(target=self._setup_thread, daemon=True).start()
+
+    def _ui(self, fn):
+        """Schedule fn on the main thread."""
+        self.root.after(0, fn)
+
+    def _setup_thread(self):
+        """Background thread: auto-install deps, detect devices, configure."""
+        def log(msg):
+            self._ui(lambda: self._log(msg))
+        def set_check(key, ok):
+            self._ui(lambda: self._set_check(key, ok))
+
+        # ---- Phase 1: Auto-install missing dependencies ----
+
+        # VoiceMeeter Banana
+        if not Path(VM_DLL).exists():
+            log("VoiceMeeter Banana not found \u2014 downloading installer...")
+            try:
+                import urllib.request
+                installer = SCRIPT_DIR / "_VoicemeeterProSetup.exe"
+                urllib.request.urlretrieve(
+                    "https://download.vb-audio.com/Download_CABLE/"
+                    "VoicemeeterProSetup.exe", str(installer))
+                log("Launching VoiceMeeter installer...")
+                subprocess.Popen([str(installer)])
+                log("")
+                log("Install VoiceMeeter, REBOOT your PC, then run "
+                    "this wizard again.")
+                self._ui(lambda: messagebox.showinfo(
+                    "VoiceMeeter Required",
+                    "VoiceMeeter Banana installer has been downloaded "
+                    "and launched.\n\n"
+                    "1. Complete the VoiceMeeter installation\n"
+                    "2. REBOOT your PC\n"
+                    "3. Run this setup wizard again\n\n"
+                    "The wizard will continue from where you left off."))
+            except Exception as e:
+                log(f"Download failed: {e}")
+                log("Install VoiceMeeter manually: "
+                    "https://vb-audio.com/Voicemeeter/banana.htm")
+            self._ui(lambda: self.setup_btn.config(state="normal"))
+            return
+
+        # svcl.exe
+        if not SVCL_PATH.exists():
+            log("Downloading svcl.exe (NirSoft audio tool)...")
+            try:
+                import urllib.request
+                import zipfile
+
+                zip_path = SCRIPT_DIR / "_svcl.zip"
+                urllib.request.urlretrieve(SVCL_URL, str(zip_path))
+                with zipfile.ZipFile(str(zip_path), "r") as zf:
+                    for name in zf.namelist():
+                        if name.lower() == "svcl.exe":
+                            with zf.open(name) as src, \
+                                 open(str(SVCL_PATH), "wb") as dst:
+                                dst.write(src.read())
+                            break
+                zip_path.unlink(missing_ok=True)
+                ok = SVCL_PATH.exists()
+                set_check("svcl", ok)
+                log("svcl.exe \u2713" if ok else "svcl download failed")
+                if not ok:
+                    self._ui(lambda: self.setup_btn.config(state="normal"))
+                    return
+            except Exception as e:
+                log(f"svcl download failed: {e}")
+                self._ui(lambda: self.setup_btn.config(state="normal"))
+                return
+
+        # Python packages
+        if not all(self._check_pkg(p) for p in REQUIRED_PACKAGES):
+            log("Installing Python packages...")
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-r",
+                     str(SCRIPT_DIR / "requirements.txt")],
+                    capture_output=True, text=True, timeout=120,
+                )
+                ok = result.returncode == 0
+                set_check("packages", ok)
+                log("Packages installed \u2713" if ok
+                    else f"pip error: {result.stderr[:200]}")
+                if not ok:
+                    self._ui(lambda: self.setup_btn.config(state="normal"))
+                    return
+            except Exception as e:
+                log(f"Package install failed: {e}")
+                self._ui(lambda: self.setup_btn.config(state="normal"))
+                return
+
+        # ---- Phase 2: Detect devices if not already done ----
+        mic_name = self.mic_var.get()
+        vr_name = self.vr_var.get()
+        spk_name = self.spk_var.get()
+
+        if not mic_name or not vr_name:
+            log("Detecting audio devices...")
+            detect_done = threading.Event()
+            self._ui(lambda: (self._detect_devices(), detect_done.set()))
+            detect_done.wait(timeout=15)
+            time.sleep(0.5)
+            mic_name = self.mic_var.get()
+            vr_name = self.vr_var.get()
+            spk_name = self.spk_var.get()
+
+        if not mic_name:
+            log("No microphone detected. Please select one and try again.")
+            self._ui(lambda: self.setup_btn.config(state="normal"))
+            return
+        if not vr_name:
+            log("No VR headset output detected. Please select one and "
+                "try again.")
+            self._ui(lambda: self.setup_btn.config(state="normal"))
+            return
+
+        # ---- Phase 3: Configure everything ----
+        log("Setting up...")
         errors = []
 
         # 1. Find VoiceMeeter VAIO svcl ID
@@ -621,7 +728,7 @@ class SetupWizard:
                 vaio_id = d["friendly_id"]
         if not vaio_id:
             vaio_id = r"VB-Audio Voicemeeter VAIO\Device\Voicemeeter Input\Render"
-        self._log(f"VoiceMeeter VAIO: {vaio_id[:50]}...")
+        log(f"VoiceMeeter VAIO: {vaio_id[:50]}...")
 
         # 2. config.json
         config = {
@@ -637,7 +744,7 @@ class SetupWizard:
         try:
             with open(CONFIG_PATH, "w") as f:
                 json.dump(config, f, indent=2)
-            self._log("config.json \u2713")
+            log("config.json \u2713")
         except Exception as e:
             errors.append(f"config.json: {e}")
 
@@ -645,17 +752,17 @@ class SetupWizard:
         try:
             with open(VM_DEVICES_PATH, "w") as f:
                 json.dump({"Strip[0]": mic_name}, f, indent=2)
-            self._log(f"vm_devices.json \u2713 (mic: {mic_name})")
+            log(f"vm_devices.json \u2713 (mic: {mic_name})")
         except Exception as e:
             errors.append(f"vm_devices.json: {e}")
 
         # 4. "Listen to this device" on Voicemeeter Out B2 → VR headset
         listen_ok = self._configure_listen(vr_name)
         if listen_ok:
-            self._log("Listen to this device \u2713 (B2 \u2192 "
-                      f"{vr_name})")
+            log("Listen to this device \u2713 (B2 \u2192 "
+                f"{vr_name})")
         else:
-            self._log("Listen to this device: manual step needed (see below)")
+            log("Listen to this device: manual step needed (see below)")
 
         # 5. Shortcuts
         pythonw = Path(sys.executable).parent / "pythonw.exe"
@@ -671,7 +778,7 @@ class SetupWizard:
                             str(desktop / "VR Audio Switcher.lnk"),
                             args=f'"{script}"',
                             description="VR Audio Switcher")
-            self._log("Desktop shortcut \u2713")
+            log("Desktop shortcut \u2713")
         except Exception as e:
             errors.append(f"Desktop shortcut: {e}")
 
@@ -683,27 +790,28 @@ class SetupWizard:
                             str(startup / "VR Audio Switcher.lnk"),
                             args=f'"{script}"',
                             description="VR Audio Switcher (auto-start)")
-            self._log("Startup shortcut \u2713 (auto-launches on boot)")
+            log("Startup shortcut \u2713 (auto-launches on boot)")
         except Exception as e:
             errors.append(f"Startup shortcut: {e}")
 
         # 6. Shut down VoiceMeeter so tray app gets a fresh start
         if self._vm_launched_by_us:
-            self._shutdown_voicemeeter()
+            self._ui(lambda: self._shutdown_voicemeeter())
 
         if errors:
             for err in errors:
-                self._log(f"Warning: {err}")
+                log(f"Warning: {err}")
 
         if not listen_ok:
-            self._log("")
-            self._show_manual_listen(vr_name)
+            log("")
+            self._ui(lambda: self._show_manual_listen(vr_name))
         else:
-            self._log("")
-            self._log("Setup complete! Click Launch to start.")
-            self.launch_btn.config(state="normal", bg=self.accent, fg="#000")
+            log("")
+            log("Setup complete! Click Launch to start.")
+            self._ui(lambda: self.launch_btn.config(
+                state="normal", bg=self.accent, fg="#000"))
 
-        self.setup_btn.config(state="normal")
+        self._ui(lambda: self.setup_btn.config(state="normal"))
 
     def _configure_listen(self, vr_output_name: str) -> bool:
         """Try to enable 'Listen to this device' on B2 via registry."""

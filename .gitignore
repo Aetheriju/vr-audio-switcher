@@ -24,6 +24,8 @@ _check_listen*.ps1
 _listen_setup.ps1
 _listen_result.txt
 _mkshortcut.ps1
+_svcl.zip
+_VoicemeeterProSetup.exe
 
 # Python
 __pycache__/
