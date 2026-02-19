@@ -532,15 +532,17 @@ class VRAudioSwitcher:
             idx = -1
         self._user_mode = MODE_CYCLE[(idx + 1) % len(MODE_CYCLE)]
         logging.info("User mode -> %s", self._user_mode.name)
-        self._apply()
+        self._update_tray()
         self._write_state()
+        threading.Thread(target=self._apply, daemon=True).start()
 
     def _set_mode(self, mode: UserMode):
         def callback(icon, item):
             self._user_mode = mode
             logging.info("User mode -> %s", mode.name)
-            self._apply()
+            self._update_tray()
             self._write_state()
+            threading.Thread(target=self._apply, daemon=True).start()
         return callback
 
     def _is_mode(self, mode: UserMode):
