@@ -1,8 +1,10 @@
 # VR Audio Switcher
 
-**One-click audio management for VRChat + Steam Link.**
+**One-click audio management for VRChat.**
 
-You play VRChat on Quest via Steam Link. You want music from *any* app — Spotify, YouTube, SoundCloud, VLC, whatever you use — to play through your VRChat mic so friends can hear it. But you also want independent volume control over what *they* hear vs. what *you* hear, and you want everything to switch back to your desktop speakers automatically when you close SteamVR. That's exactly what this does.
+You play VRChat on PC and want music from *any* app — Spotify, YouTube, SoundCloud, VLC, whatever you use — to play through your VRChat mic so friends can hear it. But you also want independent volume control over what *they* hear vs. what *you* hear, and you want everything to switch back to your desktop speakers automatically when you close SteamVR. That's exactly what this does.
+
+Works with any VR headset — Quest (via Steam Link or Virtual Desktop), Index, Vive, Rift, or anything else with its own audio output.
 
 ## What It Does
 
@@ -51,7 +53,7 @@ You play VRChat on Quest via Steam Link. You want music from *any* app — Spoti
 - **Windows 10/11**
 - **Python 3.10+** — [python.org/downloads](https://www.python.org/downloads/)
 - **VoiceMeeter Banana** — [vb-audio.com/Voicemeeter/banana](https://vb-audio.com/Voicemeeter/banana.htm) (free)
-- **A VR headset with audio** — built for Quest via Steam Link, but works with any VR setup that has its own audio output device
+- **Any VR headset** — Quest, Index, Vive, Rift, etc. Just needs its own audio output device that shows up in Windows
 
 ## Quick Start
 
@@ -123,7 +125,7 @@ If you prefer to configure manually instead of using the wizard:
 6. Set up VoiceMeeter Banana:
    - **Strip[0]** hardware input: your microphone
    - **Strip[3]** (VAIO): this is where all app audio arrives — no setup needed
-   - Enable "Listen to this device" on **Voicemeeter Out B2** in Windows Sound settings, targeting your Quest/Steam Streaming Speakers
+   - Enable "Listen to this device" on **Voicemeeter Out B2** in Windows Sound settings, targeting your VR headset's audio output
 
 7. Run:
    ```bash
@@ -139,7 +141,7 @@ The setup wizard configures this automatically (with a UAC prompt). If it fails 
 3. Find **Voicemeeter Out B2** (VB-Audio VoiceMeeter VAIO)
 4. Right-click → **Properties** → **Listen** tab
 5. Check **"Listen to this device"**
-6. Set playback device to **Steam Streaming Speakers** (your Quest audio)
+6. Set playback device to your **VR headset's audio output** (e.g. Steam Streaming Speakers, Index speakers, etc.)
 7. Click OK
 
 This setting persists across reboots — you only need to do it once.
@@ -159,7 +161,7 @@ Right-click the tray icon → **Mixer** to open the volume control panel.
 
 **Volume sliders** (-100% to +100%):
 - **Music for Others** — what friends hear through your VRChat mic (Public mode only)
-- **Music for Me** — what you hear in your Quest headset
+- **Music for Me** — what you hear in your VR headset
 - **My Voice** — your mic volume in VRChat
 
 **EQ sliders** (0% to 100%):
