@@ -222,4 +222,4 @@ Windows may hide new tray icons. Click the **^** arrow in the system tray to fin
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+GPL v3. Free for everyone, forever. See [LICENSE](LICENSE).
