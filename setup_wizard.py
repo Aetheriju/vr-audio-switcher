@@ -29,7 +29,7 @@ SVCL_URL = "https://www.nirsoft.net/utils/svcl-x64.zip"
 WIZARD_LOG_PATH = SCRIPT_DIR / "wizard.log"
 from vm_path import find_dll, find_exe, is_vm_process
 
-REQUIRED_PACKAGES = ["psutil", "pystray", "PIL"]  # PIL = Pillow
+REQUIRED_PACKAGES = ["psutil"]
 
 # Registry property keys for "Listen to this device"
 LISTEN_PROP_GUID = "{24dbb0fc-9311-4b3d-9cf0-18ff155639d4}"
@@ -301,7 +301,7 @@ class SetupWizard:
              lambda: os.startfile("https://vb-audio.com/Voicemeeter/banana.htm")),
             ("svcl", "svcl.exe (NirSoft audio tool)", "Download",
              self._download_svcl),
-            ("packages", "Python packages (psutil, pystray, Pillow)",
+            ("packages", "Python packages (psutil)",
              "Install", self._install_deps),
         ]:
             row = tk.Frame(self.chk_frame, bg=self.bg)
@@ -869,7 +869,7 @@ class SetupWizard:
         except Exception as e:
             errors.append(f"Startup shortcut: {e}")
 
-        # 6. Shut down VoiceMeeter so tray app gets a fresh start
+        # 6. Shut down VoiceMeeter so the app gets a fresh start
         if self._vm_launched_by_us:
             self._ui(lambda: self._shutdown_voicemeeter())
 
@@ -972,13 +972,13 @@ class SetupWizard:
         )
 
     def _shutdown_voicemeeter(self):
-        """Shut down VoiceMeeter so the tray app can start it fresh."""
+        """Shut down VoiceMeeter so the app can start it fresh."""
         try:
             import psutil
             for proc in psutil.process_iter(["name"]):
                 if proc.info["name"] and is_vm_process(proc.info["name"]):
                     proc.kill()
-                    self._log("VoiceMeeter shut down (tray app will restart it)")
+                    self._log("VoiceMeeter shut down (app will restart it with SteamVR)")
                     break
         except Exception:
             pass
@@ -992,7 +992,7 @@ class SetupWizard:
             pythonw = Path(sys.executable)
         script = str(SCRIPT_DIR / "vr_audio_switcher.py")
         subprocess.Popen([str(pythonw), script])
-        self._log("Launched! Look for the tray icon in your system tray.")
+        self._log("Launched! The app will start automatically when SteamVR runs.")
         self.root.after(2000, self.root.destroy)
 
     def run(self):

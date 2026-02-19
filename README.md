@@ -8,8 +8,8 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
 
 ## What It Does
 
-- **Auto-detects VR** by watching for a configurable process (defaults to `vrserver.exe`, works with SteamVR, Virtual Desktop, and others). Switches all your audio apps to VoiceMeeter when VR launches, back to your speakers when it closes. VRChat audio is never touched.
-- **4 audio modes** with one-click tray icon switching:
+- **Auto-detects VR** by watching for a configurable process (defaults to `vrserver.exe`, works with SteamVR, Virtual Desktop, and others). Boots VoiceMeeter when VR starts, shuts it down when VR stops. Switches all your audio apps to VoiceMeeter automatically.
+- **4 audio modes** with buttons in the mixer UI:
   - **Desktop** (blue): music plays through your speakers, VoiceMeeter bypassed
   - **Auto** (green): follows VR state, defaults to Private behavior
   - **Private** (yellow): music in your headset only, mic stays clean
@@ -20,25 +20,25 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
   - Your voice volume in VRChat
   - Bass / Mid / Treble EQ
 - **Preset system** for saving, loading, renaming, and reordering audio profiles with drag-and-drop
-- **Full VoiceMeeter lifecycle**: auto-launches VoiceMeeter on startup, persists all settings (gains, EQ, device assignments) across restarts, shuts down cleanly on quit
-- **Settings menu** for configuring excluded apps and tuning polling/debounce from the tray
-- **Auto-updater** that checks for new versions in the background with one-click update from the tray
-- **Clean uninstall** that removes shortcuts, configs, and state files from the tray menu
+- **VR-synced lifecycle**: everything boots and shuts down with SteamVR automatically
+- **Tabbed interface**: Mixer, Guide, Settings, and Help all in one window
+- **Auto-updater** that checks for new versions on boot and from the Settings tab
+- **Clean uninstall** via `uninstall.bat`
 
 ## How It Works
 
 ```
-                      ┌──────────────────────────────┐
-  Physical Mic ─────► │  VoiceMeeter Banana           │
-  (your headset mic)  │                               │
-                      │  Strip[0] (Mic) ──► B1 ───────┼──► VRChat (mic input)
-                      │                               │
-  Any Audio App ────► │  Strip[3] (VAIO) ──► B2 ──────┼──► VR Headset (you hear)
-  (Spotify, YouTube,  │         └──► B1 (if Public) ──┼──► VRChat (friends hear)
-   VLC, browser, etc) │                               │
-                      │  Mixer controls Strip/Bus     │
-                      │  gains independently          │
-                      └──────────────────────────────┘
+                      +------------------------------+
+  Physical Mic -----> |  VoiceMeeter Banana           |
+  (your headset mic)  |                               |
+                      |  Strip[0] (Mic) --> B1 -------+--> VRChat (mic input)
+                      |                               |
+  Any Audio App ----> |  Strip[3] (VAIO) --> B2 ------+--> VR Headset (you hear)
+  (Spotify, YouTube,  |         \--> B1 (if Public) --+--> VRChat (friends hear)
+   VLC, browser, etc) |                               |
+                      |  Mixer controls Strip/Bus     |
+                      |  gains independently          |
+                      +------------------------------+
 
   VRChat is automatically excluded. Its audio always stays on your headset.
   All other apps with active audio are switched together.
@@ -78,9 +78,9 @@ That's it. The installer handles everything automatically:
 
 ### 3. You're done
 
-The tray icon appears in your system tray. Left-click to cycle modes, right-click for the full menu including Mixer, Settings, VRChat Mic Help, Check for Updates, and Uninstall.
+The app runs silently in the background and springs to life when SteamVR starts. It launches VoiceMeeter, opens the mixer UI, routes all your audio, and shuts everything down cleanly when VR stops.
 
-**First launch:** You'll get a one-time reminder to set your VRChat microphone to "Voicemeeter Out B1". This is the only in-game step needed.
+**First launch:** The Guide tab opens automatically with setup instructions. Set your VRChat microphone to "Voicemeeter Out B1" (this only needs to be done once).
 
 ## Manual Setup
 
@@ -114,7 +114,7 @@ If you prefer to configure manually instead of using the wizard:
    - `vr_process`: The process name that indicates VR is running. Defaults to `vrserver.exe` (SteamVR). Virtual Desktop and most PCVR launchers start this process automatically. If your setup uses something different, change it here.
    - `exclude_processes`: Apps whose audio should NOT be switched (VRChat is always excluded). All other audio apps are switched automatically.
    - `vr_device`: The svcl Friendly ID for "Voicemeeter Input" (look for `VB-Audio Voicemeeter VAIO\Device\Voicemeeter Input\Render`).
-   - You can also add apps to the exclusion list later from the tray Settings menu.
+   - You can also add apps to the exclusion list later from the Settings tab.
 
 5. Create `vm_devices.json` with your mic device name (as shown in VoiceMeeter):
    ```json
@@ -149,8 +149,8 @@ This setting persists across reboots. You only need to do it once.
 
 ## Modes Explained
 
-| Mode | Icon | Audio Apps Output | Music in Headset | Music in VRChat Mic | Use Case |
-|------|------|------------------|-----------------|--------------------|----|
+| Mode | Button | Audio Apps Output | Music in Headset | Music in VRChat Mic | Use Case |
+|------|--------|------------------|-----------------|--------------------|----|
 | Desktop | Blue | Your speakers | No | No | Normal desktop use |
 | Auto | Green | Follows VR state | When VR active | No | Default, hands-free switching |
 | Private | Yellow | VoiceMeeter | Yes | No | Personal listening in VR |
@@ -158,7 +158,7 @@ This setting persists across reboots. You only need to do it once.
 
 ## Mixer
 
-Right-click the tray icon > **Mixer** to open the volume control panel.
+The mixer opens automatically when SteamVR starts. Use the tabs to switch between Mixer, Guide, Settings, and Help.
 
 **Volume sliders** (-100% to +100%):
 - **Music for Others**: what friends hear through your VRChat mic (Public mode only)
@@ -178,18 +178,18 @@ Right-click the tray icon > **Mixer** to open the volume control panel.
 ## Troubleshooting
 
 **No audio after VoiceMeeter restart:**
-The app automatically saves and restores VoiceMeeter device assignments and gain settings. If audio is missing, try right-click tray > Quit, then relaunch from the desktop shortcut.
+The app automatically saves and restores VoiceMeeter device assignments and gain settings. If audio is missing, close the app (X button > Shut Down Everything) and relaunch.
 
 **Mic not working in VRChat:**
 - Make sure VRChat's mic input is set to **Voicemeeter Out B1** (not your physical mic)
 - Check that Strip[0] in VoiceMeeter shows your physical mic as the input device
-- Verify Strip[0].B1 routing is enabled (the app enforces this every 15 seconds)
+- Verify Strip[0].B1 routing is enabled (the app enforces this every 5 seconds)
 
 **Audio apps not switching:**
 - At least one audio app (Spotify, Chrome, etc.) must be playing or have an active audio session
 - The app uses `svcl.exe` for per-app audio routing. Make sure it's in the project directory.
 - Check `switcher.log` for errors
-- Open Settings from the tray menu to check if the app is accidentally excluded
+- Open the Settings tab to check if the app is accidentally excluded
 
 **"svcl.exe not found":**
 Run `python setup_wizard.py` to download it, or manually download [svcl-x64.zip](https://www.nirsoft.net/utils/svcl-x64.zip) and extract `svcl.exe` to the project directory.
@@ -197,15 +197,13 @@ Run `python setup_wizard.py` to download it, or manually download [svcl-x64.zip]
 **Antivirus flags svcl.exe:**
 NirSoft tools are sometimes flagged as false positives by antivirus software. svcl.exe is a legitimate Windows audio management utility. You may need to add an exception in your antivirus.
 
-**Tray icon not visible:**
-Windows may hide new tray icons. Click the **^** arrow in the system tray to find it, then drag it to the visible area.
-
 ## Architecture
 
 | File | Purpose |
 |------|---------|
-| `vr_audio_switcher.py` | Main tray app: VR detection, mode switching, VoiceMeeter control, settings, uninstall |
-| `mixer.py` | Mixer UI: volume/EQ sliders, presets, drag-and-drop |
+| `vr_audio_switcher.py` | Core app: VR-synced lifecycle, VoiceMeeter control, audio switching |
+| `mixer.py` | Tabbed UI: mixer sliders, guide, settings, help |
+| `splash.py` | Boot/shutdown splash screen with status updates |
 | `setup_wizard.py` | First-run setup: device detection, config generation, svcl download |
 | `updater.py` | Auto-updater: checks GitHub releases, downloads and applies updates |
 | `vm_path.py` | VoiceMeeter detection: finds DLL/EXE via Windows registry |
@@ -213,7 +211,7 @@ Windows may hide new tray icons. Click the **^** arrow in the system tray to fin
 | `vm_devices.json` | Persisted VoiceMeeter device assignments |
 | `vm_state.json` | Persisted VoiceMeeter gain/EQ values |
 | `presets.json` | User-saved mixer presets |
-| `state.json` | Runtime communication between tray app and mixer |
+| `state.json` | Runtime state (current mode, VR active) |
 
 ## Credits
 
