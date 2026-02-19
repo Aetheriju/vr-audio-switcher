@@ -1,4 +1,4 @@
-"""VR Audio Auto-Switcher — detects SteamVR and toggles Chrome's audio output."""
+"""VR Audio Auto-Switcher: detects VR and routes per-app audio output."""
 
 import csv
 import ctypes
@@ -43,7 +43,7 @@ def acquire_single_instance():
 # ---------------------------------------------------------------------------
 class UserMode(Enum):
     DESKTOP = auto()    # Blue   — forced desktop/soundbar
-    AUTO = auto()       # Green  — auto-detect SteamVR
+    AUTO = auto()       # Green  - auto-detect VR
     VR = auto()         # Red    — forced VR (music thru mic)
     SILENT_VR = auto()  # Yellow — VR but music only in headset
 
@@ -304,11 +304,13 @@ class AudioSwitcher:
 
 
 # ---------------------------------------------------------------------------
-# SteamVR detector (polling thread)
+# VR detector (polling thread)
 # ---------------------------------------------------------------------------
-class SteamVRDetector:
+class VRDetector:
     def __init__(self, config: dict, on_change):
-        self.process_name = config["steamvr_process"].lower()
+        self.process_name = config.get("vr_process",
+                                       config.get("steamvr_process",
+                                                   "vrserver.exe")).lower()
         self.poll_interval = config["poll_interval_seconds"]
         self.debounce = config["debounce_seconds"]
         self.on_change = on_change
@@ -326,19 +328,19 @@ class SteamVRDetector:
         if self._thread:
             self._thread.join(timeout=10)
 
-    def is_steamvr_running(self) -> bool:
+    def is_vr_running(self) -> bool:
         return is_process_running(self.process_name)
 
     def _poll(self):
         while not self._stop.is_set():
             try:
-                running = self.is_steamvr_running()
+                running = self.is_vr_running()
                 if running != self._vr_running:
                     now = time.time()
                     if now - self._last_change >= self.debounce:
                         self._vr_running = running
                         self._last_change = now
-                        logging.info("SteamVR %s", "started" if running else "stopped")
+                        logging.info("VR %s", "started" if running else "stopped")
                         self.on_change(running)
             except Exception:
                 logging.exception("Poll error")
@@ -352,7 +354,7 @@ class VRAudioSwitcher:
     def __init__(self, config: dict):
         self.config = config
         self.audio = AudioSwitcher(config)
-        self.detector = SteamVRDetector(config, self._on_steamvr_change)
+        self.detector = VRDetector(config, self._on_vr_change)
         self.vm = VoiceMeeterRemote()
         self.music_strip = config.get("music_strip", 3)
         self._user_mode = UserMode.AUTO
@@ -369,8 +371,8 @@ class VRAudioSwitcher:
             return AudioOutput.DESKTOP
         if self._user_mode in (UserMode.VR, UserMode.SILENT_VR):
             return AudioOutput.VR
-        # AUTO — follow SteamVR
-        return AudioOutput.VR if self.detector.is_steamvr_running() else AudioOutput.DESKTOP
+        # AUTO - follow VR state
+        return AudioOutput.VR if self.detector.is_vr_running() else AudioOutput.DESKTOP
 
     def _desired_mic(self) -> bool:
         """Should music go through the VRChat mic (Strip[3].B1)?"""
@@ -462,11 +464,11 @@ class VRAudioSwitcher:
             except Exception:
                 logging.exception("Gain restore after VM restart failed")
 
-    def _on_steamvr_change(self, running: bool):
-        """Called by detector when SteamVR starts/stops."""
+    def _on_vr_change(self, running: bool):
+        """Called by detector when VR starts/stops."""
         if not running and self._user_mode in (UserMode.VR, UserMode.SILENT_VR):
             self._user_mode = UserMode.AUTO
-            logging.info("SteamVR gone while in VR mode — falling back to AUTO")
+            logging.info("VR stopped while in VR mode, falling back to AUTO")
             self._write_state()
         if self._user_mode == UserMode.AUTO:
             self._apply()

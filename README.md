@@ -2,16 +2,16 @@
 
 **One-click audio management for VRChat.**
 
-You play VRChat on PC and want music from *any* app (Spotify, YouTube, SoundCloud, VLC, whatever) to play through your VRChat mic so friends can hear it. You also want independent volume control over what *they* hear vs. what *you* hear, and you want everything to switch back to your desktop speakers automatically when you close SteamVR. That's exactly what this does.
+You play VRChat on PC and want music from *any* app (Spotify, YouTube, SoundCloud, VLC, whatever) to play through your VRChat mic so friends can hear it. You also want independent volume control over what *they* hear vs. what *you* hear, and you want everything to switch back to your desktop speakers automatically when you take off the headset. That's exactly what this does.
 
 Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Vive, Rift, or anything else with its own audio output.
 
 ## What It Does
 
-- **Auto-detects SteamVR** and switches all your audio apps (Spotify, Chrome, VLC, etc.) to VoiceMeeter when SteamVR launches, back to your speakers when it closes. VRChat audio is never touched.
+- **Auto-detects VR** by watching for a configurable process (defaults to `vrserver.exe`, works with SteamVR, Virtual Desktop, and others). Switches all your audio apps to VoiceMeeter when VR launches, back to your speakers when it closes. VRChat audio is never touched.
 - **4 audio modes** with one-click tray icon switching:
   - **Desktop** (blue): music plays through your speakers, VoiceMeeter bypassed
-  - **Auto** (green): follows SteamVR state, defaults to Private behavior
+  - **Auto** (green): follows VR state, defaults to Private behavior
   - **Private** (yellow): music in your headset only, mic stays clean
   - **Public** (red): music plays through your VRChat mic AND your headset
 - **Mixer UI** with independent sliders for:
@@ -102,7 +102,7 @@ If you prefer to configure manually instead of using the wizard:
    ```json
    {
      "poll_interval_seconds": 3,
-     "steamvr_process": "vrserver.exe",
+     "vr_process": "vrserver.exe",
      "exclude_processes": ["vrchat.exe"],
      "svcl_path": "svcl.exe",
      "vr_device": "<VoiceMeeter VAIO Friendly ID from svcl>",
@@ -111,6 +111,7 @@ If you prefer to configure manually instead of using the wizard:
      "vrchat_mic_confirmed": false
    }
    ```
+   - `vr_process`: The process name that indicates VR is running. Defaults to `vrserver.exe` (SteamVR). Virtual Desktop and most PCVR launchers start this process automatically. If your setup uses something different, change it here.
    - `exclude_processes`: Apps whose audio should NOT be switched (VRChat is always excluded). All other audio apps are switched automatically.
    - `vr_device`: The svcl Friendly ID for "Voicemeeter Input" (look for `VB-Audio Voicemeeter VAIO\Device\Voicemeeter Input\Render`).
    - You can also add apps to the exclusion list later from the tray Settings menu.
@@ -151,7 +152,7 @@ This setting persists across reboots. You only need to do it once.
 | Mode | Icon | Audio Apps Output | Music in Headset | Music in VRChat Mic | Use Case |
 |------|------|------------------|-----------------|--------------------|----|
 | Desktop | Blue | Your speakers | No | No | Normal desktop use |
-| Auto | Green | Follows SteamVR | When VR active | No | Default, hands-free switching |
+| Auto | Green | Follows VR state | When VR active | No | Default, hands-free switching |
 | Private | Yellow | VoiceMeeter | Yes | No | Personal listening in VR |
 | Public | Red | VoiceMeeter | Yes | Yes | DJ mode, friends hear your music |
 
@@ -203,7 +204,7 @@ Windows may hide new tray icons. Click the **^** arrow in the system tray to fin
 
 | File | Purpose |
 |------|---------|
-| `vr_audio_switcher.py` | Main tray app: SteamVR detection, mode switching, VoiceMeeter control, settings, uninstall |
+| `vr_audio_switcher.py` | Main tray app: VR detection, mode switching, VoiceMeeter control, settings, uninstall |
 | `mixer.py` | Mixer UI: volume/EQ sliders, presets, drag-and-drop |
 | `setup_wizard.py` | First-run setup: device detection, config generation, svcl download |
 | `updater.py` | Auto-updater: checks GitHub releases, downloads and applies updates |

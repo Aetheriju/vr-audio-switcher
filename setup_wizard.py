@@ -802,7 +802,7 @@ class SetupWizard:
         # 2. config.json
         config = {
             "poll_interval_seconds": 3,
-            "steamvr_process": "vrserver.exe",
+            "vr_process": "vrserver.exe",
             "exclude_processes": ["vrchat.exe"],
             "svcl_path": "svcl.exe",
             "vr_device": vaio_id,
