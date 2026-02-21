@@ -30,6 +30,7 @@ VM_DEVICES_PATH = SCRIPT_DIR / "vm_devices.json"
 ENFORCE_INTERVAL = 5  # seconds between enforcement cycles
 SPLASH_DONE = SCRIPT_DIR / "_splash_done"
 SPLASH_STATUS = SCRIPT_DIR / "_splash_status"
+SHOW_UI_SIGNAL = SCRIPT_DIR / "_show_ui"
 
 
 def _splash_update(text):
@@ -56,9 +57,8 @@ def acquire_single_instance():
 # ---------------------------------------------------------------------------
 class UserMode(Enum):
     DESKTOP = auto()    # Blue   — forced desktop/soundbar
-    AUTO = auto()       # Green  - auto-detect VR
-    VR = auto()         # Red    — forced VR (music thru mic)
-    SILENT_VR = auto()  # Yellow — VR but music only in headset
+    VR = auto()         # Red    — music thru VRChat mic + headset
+    SILENT_VR = auto()  # Yellow — music in headset only, mic clean
 
 
 # Audio output: what apps are actually doing
@@ -68,7 +68,7 @@ class AudioOutput(Enum):
 
 
 # Cycle order for mode buttons
-MODE_CYCLE = [UserMode.DESKTOP, UserMode.AUTO, UserMode.SILENT_VR, UserMode.VR]
+MODE_CYCLE = [UserMode.DESKTOP, UserMode.SILENT_VR, UserMode.VR]
 
 
 def is_process_running(name: str) -> bool:
@@ -366,6 +366,17 @@ class AudioSwitcher:
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
 
+    def set_system_default(self, device: str):
+        """Set the Windows system default render device via svcl."""
+        try:
+            subprocess.run(
+                [self.svcl_path, "/SetDefault", device, "all"],
+                capture_output=True, timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+        except Exception:
+            logging.debug("Failed to set system default device", exc_info=True)
+
     def switch_to(self, output: AudioOutput) -> bool:
         """Set audio output for target app(s). Returns True if any succeeded."""
         device = self.vr_device if output == AudioOutput.VR \
@@ -449,7 +460,7 @@ class VRAudioSwitcher:
         self.detector = VRDetector(config, self._on_vr_change)
         self.vm = VoiceMeeterRemote()
         self.music_strip = config.get("music_strip", 3)
-        self._user_mode = UserMode.AUTO
+        self._user_mode = UserMode.SILENT_VR
         self._current_output = None
         self._mic_enabled = True  # Strip[3].B1 state
         self._confirmed = False   # True when svcl matched at least one app
@@ -542,10 +553,8 @@ class VRAudioSwitcher:
         """Determine what audio output should be based on user mode."""
         if self._user_mode == UserMode.DESKTOP:
             return AudioOutput.DESKTOP
-        if self._user_mode in (UserMode.VR, UserMode.SILENT_VR):
-            return AudioOutput.VR
-        # AUTO - follow VR state
-        return AudioOutput.VR if self.detector.is_vr_running() else AudioOutput.DESKTOP
+        # VR or SILENT_VR — route through VoiceMeeter
+        return AudioOutput.VR
 
     def _desired_mic(self) -> bool:
         """Should music go through the VRChat mic (Strip[3].B1)?"""
@@ -725,6 +734,7 @@ class VRAudioSwitcher:
             self._user_mode = mode_map[mode_name]
             logging.info("User mode -> %s", mode_name)
             self._write_state()
+            self._notify_ui()  # instant visual feedback before svcl runs
             threading.Thread(target=self._apply, daemon=True).start()
 
     def get_mode_name(self) -> str:
@@ -756,6 +766,54 @@ class VRAudioSwitcher:
     # ------------------------------------------------------------------
     # Session lifecycle
     # ------------------------------------------------------------------
+    def _show_waiting_window(self):
+        """Show a 'Waiting for SteamVR' window when user clicks desktop icon."""
+        import tkinter as tk
+
+        win = tk.Tk()
+        win.overrideredirect(True)
+        win.configure(bg="#1e1e1e")
+        win.attributes("-topmost", True)
+
+        # Green border frame
+        border = tk.Frame(win, bg="#4caf50", padx=1, pady=1)
+        border.pack(fill="both", expand=True)
+        inner = tk.Frame(border, bg="#1e1e1e")
+        inner.pack(fill="both", expand=True)
+
+        tk.Label(inner, text="VR Audio Switcher", bg="#1e1e1e", fg="#4caf50",
+                 font=("Segoe UI", 14, "bold")).pack(pady=(20, 5))
+        tk.Label(inner, text="Waiting for SteamVR...\nStart SteamVR to begin.",
+                 bg="#1e1e1e", fg="#888888", font=("Segoe UI", 10),
+                 justify="center").pack(pady=(0, 5))
+        tk.Button(inner, text="Quit", bg="#333333", fg="#e0e0e0",
+                  activebackground="#444444", activeforeground="#ffffff",
+                  relief="flat", padx=16, pady=4, font=("Segoe UI", 9),
+                  command=lambda: [win.destroy(),
+                                   setattr(self, '_user_quit', True)]
+                  ).pack(pady=(5, 20))
+
+        # Center on screen
+        w, h = 320, 160
+        x = (win.winfo_screenwidth() - w) // 2
+        y = (win.winfo_screenheight() - h) // 2
+        win.geometry(f"{w}x{h}+{x}+{y}")
+
+        def _poll():
+            if self._vr_start_event.is_set() or self._user_quit:
+                win.destroy()
+                return
+            # Consume any duplicate signals while window is open
+            if SHOW_UI_SIGNAL.exists():
+                try:
+                    SHOW_UI_SIGNAL.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            win.after(500, _poll)
+
+        win.after(500, _poll)
+        win.mainloop()
+
     def run(self):
         """Main loop: watch for SteamVR, run sessions, repeat."""
         self.detector.start()
@@ -770,6 +828,13 @@ class VRAudioSwitcher:
 
             # Block until VR starts (or app quits)
             while not self._user_quit and not self._vr_start_event.is_set():
+                # Check for "show UI" signal from desktop shortcut click
+                if SHOW_UI_SIGNAL.exists():
+                    try:
+                        SHOW_UI_SIGNAL.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    self._show_waiting_window()
                 self._vr_start_event.wait(timeout=5)
 
             if self._user_quit:
@@ -797,7 +862,7 @@ class VRAudioSwitcher:
         self._vm_ready.clear()
         self._confirmed = False
         self._vm_dialog_shown = False
-        self._user_mode = UserMode.AUTO
+        self._user_mode = UserMode.SILENT_VR
         self._current_output = None
 
         # Show boot splash
@@ -865,7 +930,11 @@ class VRAudioSwitcher:
             pass
 
     def _end_vr_session(self):
-        """Shut down VoiceMeeter, restore audio, clean up."""
+        """Shut down VoiceMeeter, restore audio, clean up.
+
+        All DLL calls and svcl operations are wrapped in threads with
+        timeouts so a hung VoiceMeeter can never block shutdown forever.
+        """
         self._in_cleanup = True
         self._session_active = False
         self._stop.set()  # stop enforce loop
@@ -881,41 +950,97 @@ class VRAudioSwitcher:
             except Exception:
                 pass
 
-        # Wait for any background _apply thread to finish
-        with self._lock:
+        # Wait for any background _apply thread to finish (max 5s)
+        lock_acquired = self._lock.acquire(timeout=5)
+        if lock_acquired:
+            self._lock.release()
+        else:
+            logging.warning("Lock acquire timed out after 5s, proceeding with cleanup")
+
+        # Restore desktop audio before VM shuts down (max 15s)
+        _splash_update("Restoring audio...")
+        def _restore_audio():
+            try:
+                desktop = self.audio._find_desktop_device()
+                logging.info("Restoring audio to: %s", desktop[:60])
+                # Set Windows system default so apps fall back correctly
+                self.audio.set_system_default(desktop)
+                # Switch per-app overrides
+                ok = self.audio.switch_to(AudioOutput.DESKTOP)
+                logging.info("Audio restore pass 1: %s",
+                             "OK" if ok else "no apps found")
+                time.sleep(1)
+                ok = self.audio.switch_to(AudioOutput.DESKTOP)
+                logging.info("Audio restore pass 2: %s",
+                             "OK" if ok else "no apps found")
+            except Exception:
+                logging.exception("Audio restore failed")
+
+        t = threading.Thread(target=_restore_audio, daemon=True)
+        t.start()
+        t.join(timeout=15)
+        if t.is_alive():
+            logging.warning("Audio restore timed out after 15s, skipping")
+        # Fallback: always try to set system default even if thread failed
+        try:
+            desktop = self.audio._find_desktop_device()
+            self.audio.set_system_default(desktop)
+        except Exception:
             pass
 
-        # Restore desktop audio before VM shuts down
-        _splash_update("Restoring audio...")
-        self.audio.switch_to(AudioOutput.DESKTOP)
-        time.sleep(0.5)
-        self.audio.switch_to(AudioOutput.DESKTOP)  # double-tap
-
-        # Save hardware device assignments
+        # Save settings + shut down VoiceMeeter (max 10s)
         _splash_update("Saving settings...")
-        try:
-            devices = {}
-            for i in range(3):  # Hardware strips 0-2
-                name = self.vm.get_string_param(f"Strip[{i}].device.name")
-                if name:
-                    devices[f"Strip[{i}]"] = name
-            for i in range(3):  # Hardware buses A1-A3
-                name = self.vm.get_string_param(f"Bus[{i}].device.name")
-                if name:
-                    devices[f"Bus[{i}]"] = name
-            if devices:
-                with open(VM_DEVICES_PATH, "w") as f:
-                    json.dump(devices, f, indent=2)
-                logging.info("Saved %d device assignments", len(devices))
-        except Exception:
-            logging.exception("Failed to save device config")
+        def _save_and_shutdown():
+            try:
+                devices = {}
+                for i in range(3):  # Hardware strips 0-2
+                    name = self.vm.get_string_param(f"Strip[{i}].device.name")
+                    if name:
+                        devices[f"Strip[{i}]"] = name
+                for i in range(3):  # Hardware buses A1-A3
+                    name = self.vm.get_string_param(f"Bus[{i}].device.name")
+                    if name:
+                        devices[f"Bus[{i}]"] = name
+                if devices:
+                    with open(VM_DEVICES_PATH, "w") as f:
+                        json.dump(devices, f, indent=2)
+                    logging.info("Saved %d device assignments", len(devices))
+            except Exception:
+                logging.exception("Failed to save device config")
 
-        # Shut down VoiceMeeter
-        _splash_update("Closing VoiceMeeter...")
-        self.vm.shutdown()
-        time.sleep(2)
-        self.vm.close()
-        self.vm._logged_in = False
+            _splash_update("Closing VoiceMeeter...")
+            self.vm.shutdown()
+            time.sleep(2)
+            self.vm.close()
+            self.vm._logged_in = False
+
+        t = threading.Thread(target=_save_and_shutdown, daemon=True)
+        t.start()
+        t.join(timeout=10)
+        if t.is_alive():
+            logging.warning("VM save/shutdown timed out after 10s, forcing cleanup")
+            self.vm._logged_in = False
+
+        # Force-kill VoiceMeeter if it's still running
+        _splash_update("Verifying VoiceMeeter stopped...")
+        from vm_path import is_vm_process
+        for i in range(8):
+            vm_alive = any(
+                is_vm_process(p.info.get("name", ""))
+                for p in psutil.process_iter(["name"])
+            )
+            if not vm_alive:
+                logging.info("VoiceMeeter stopped after %ds", i)
+                break
+            if i == 4:
+                logging.warning("VoiceMeeter still running after 4s, force-killing...")
+                for proc in psutil.process_iter(["name", "pid"]):
+                    try:
+                        if is_vm_process(proc.info.get("name", "")):
+                            proc.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            time.sleep(1)
 
         # Wait for SteamVR to fully stop (in case close_steamvr was called)
         _splash_update("Waiting for SteamVR...")
@@ -923,7 +1048,6 @@ class VRAudioSwitcher:
             if not self.detector.is_vr_running():
                 break
             if i == 10:
-                # Second attempt to force-kill if still alive
                 logging.warning("SteamVR still running after 10s, force-killing...")
                 for proc_name in ("vrserver.exe", "vrmonitor.exe"):
                     try:
@@ -954,10 +1078,11 @@ class VRAudioSwitcher:
 def main():
     mutex = acquire_single_instance()
     if mutex is None:
-        ctypes.windll.user32.MessageBoxW(
-            0,
-            "Already running! Check your taskbar.",
-            "VR Audio Switcher", 0x40)  # MB_ICONINFORMATION
+        # Signal the running instance to show its window
+        try:
+            SHOW_UI_SIGNAL.touch()
+        except OSError:
+            pass
         sys.exit(0)
 
     def _show_error_and_exit(msg):

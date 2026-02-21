@@ -8,10 +8,9 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
 
 ## What It Does
 
-- **Auto-detects VR** by watching for a configurable process (defaults to `vrserver.exe`, works with SteamVR, Virtual Desktop, and others). Boots VoiceMeeter when VR starts, shuts it down when VR stops. Switches all your audio apps to VoiceMeeter automatically.
-- **4 audio modes** with buttons in the mixer UI:
-  - **Desktop** (blue): music plays through your speakers, VoiceMeeter bypassed
-  - **Auto** (green): follows VR state, defaults to Private behavior
+- **Auto-detects VR** by watching for a configurable process (defaults to `vrserver.exe`, works with SteamVR, Virtual Desktop, and others). Boots VoiceMeeter when VR starts, shuts it down when VR stops. Switches all your audio apps automatically.
+- **3 audio modes** with buttons in the mixer UI:
+  - **Desktop** (green): music plays through your speakers, VoiceMeeter bypassed
   - **Private** (yellow): music in your headset only, mic stays clean
   - **Public** (red): music plays through your VRChat mic AND your headset
 - **Mixer UI** with independent sliders for:
@@ -28,17 +27,17 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
 ## How It Works
 
 ```
-                      +------------------------------+
-  Physical Mic -----> |  VoiceMeeter Banana           |
-  (your headset mic)  |                               |
-                      |  Strip[0] (Mic) --> B1 -------+--> VRChat (mic input)
-                      |                               |
-  Any Audio App ----> |  Strip[3] (VAIO) --> B2 ------+--> VR Headset (you hear)
-  (Spotify, YouTube,  |         \--> B1 (if Public) --+--> VRChat (friends hear)
-   VLC, browser, etc) |                               |
-                      |  Mixer controls Strip/Bus     |
-                      |  gains independently          |
-                      +------------------------------+
+                      ┌──────────────────────────────┐
+  Physical Mic ─────► │  VoiceMeeter Banana           │
+  (your headset mic)  │                               │
+                      │  Strip[0] (Mic) ──► B1 ───────┼──► VRChat (mic input)
+                      │                               │
+  Any Audio App ────► │  Strip[3] (VAIO) ──► B2 ──────┼──► VR Headset (you hear)
+  (Spotify, YouTube,  │         └──► B1 (if Public) ──┼──► VRChat (friends hear)
+   VLC, browser, etc) │                               │
+                      │  Mixer controls Strip/Bus     │
+                      │  gains independently          │
+                      └──────────────────────────────┘
 
   VRChat is automatically excluded. Its audio always stays on your headset.
   All other apps with active audio are switched together.
@@ -151,8 +150,7 @@ This setting persists across reboots. You only need to do it once.
 
 | Mode | Button | Audio Apps Output | Music in Headset | Music in VRChat Mic | Use Case |
 |------|--------|------------------|-----------------|--------------------|----|
-| Desktop | Blue | Your speakers | No | No | Normal desktop use |
-| Auto | Green | Follows VR state | When VR active | No | Default, hands-free switching |
+| Desktop | Green | Your speakers | No | No | Normal desktop use |
 | Private | Yellow | VoiceMeeter | Yes | No | Personal listening in VR |
 | Public | Red | VoiceMeeter | Yes | Yes | DJ mode, friends hear your music |
 

@@ -38,11 +38,11 @@ CEILS = {
 }
 
 MODE_COLORS = {
-    "DESKTOP": "#42a5f5", "AUTO": "#4caf50",
+    "DESKTOP": "#4caf50",
     "VR": "#f44336", "SILENT_VR": "#fdd835", None: "#555555",
 }
 MODE_LABELS = {
-    "DESKTOP": "Desktop", "AUTO": "Auto",
+    "DESKTOP": "Desktop",
     "VR": "Public", "SILENT_VR": "Private", None: "Any",
 }
 
@@ -270,8 +270,7 @@ class MixerApp:
 
         self._mode_btns = {}
         modes = [
-            ("DESKTOP",   "Desktop",  "#42a5f5"),
-            ("AUTO",      "Auto",     "#4caf50"),
+            ("DESKTOP",   "Desktop",  "#4caf50"),
             ("SILENT_VR", "Private",  "#fdd835"),
             ("VR",        "Public",   "#f44336"),
         ]
@@ -360,8 +359,7 @@ class MixerApp:
              "3. Play music in any app. Done!\n"
              "(See the Help tab for more details)"),
             ("Modes",
-             "\u2022 Blue (Desktop): all audio plays through speakers\n"
-             "\u2022 Green (Auto): switches with VR automatically\n"
+             "\u2022 Green (Desktop): all audio plays through speakers\n"
              "\u2022 Yellow (Private): music in your headset only\n"
              "\u2022 Red (Public): music in headset + VRChat mic\n\n"
              "Use the mode buttons at the top of the Mixer tab\n"

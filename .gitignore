@@ -13,7 +13,12 @@ vm_state.json
 presets.json
 state.json
 
-# Runtime / temp scripts
+# Runtime / temp / IPC files
+_splash_done
+_splash_status
+_show_ui
+_enum_devices.csv
+_test_devices.csv
 switcher.log
 switcher.log.1
 wizard.log
