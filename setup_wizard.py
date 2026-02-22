@@ -675,8 +675,21 @@ class SetupWizard:
                 vm_zip.unlink(missing_ok=True)
                 log("Launching VoiceMeeter installer...")
                 log("Complete the installer, then setup will continue.")
-                proc = subprocess.Popen([str(installer)])
-                proc.wait()
+                import ctypes
+                ret = ctypes.windll.shell32.ShellExecuteW(
+                    None, "runas", str(installer), None, None, 1)
+                if ret <= 32:
+                    raise RuntimeError(f"Failed to launch installer (code {ret})")
+                # Wait for installer process to finish
+                time.sleep(5)
+                while True:
+                    r = subprocess.run(
+                        ["tasklist", "/FI",
+                         f"IMAGENAME eq {installer.name}"],
+                        capture_output=True, text=True)
+                    if installer.name.lower() not in r.stdout.lower():
+                        break
+                    time.sleep(2)
                 installer.unlink(missing_ok=True)
 
                 time.sleep(3)
