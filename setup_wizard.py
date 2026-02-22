@@ -295,14 +295,11 @@ class SetupWizard:
 
         self.chk_labels = {}
         self.chk_btns = {}
-        for key, label, btn_text, btn_cmd in [
-            ("python", "Python 3.10+", None, None),
-            ("voicemeeter", "VoiceMeeter Banana", "Download",
-             lambda: os.startfile("https://vb-audio.com/Voicemeeter/banana.htm")),
-            ("svcl", "svcl.exe (NirSoft audio tool)", "Download",
-             self._download_svcl),
-            ("packages", "Python packages (psutil)",
-             "Install", self._install_deps),
+        for key, label in [
+            ("python", "Python 3.10+"),
+            ("voicemeeter", "VoiceMeeter Banana"),
+            ("svcl", "svcl.exe (NirSoft audio tool)"),
+            ("packages", "Python packages (psutil)"),
         ]:
             row = tk.Frame(self.chk_frame, bg=self.bg)
             row.pack(fill="x", pady=1)
@@ -312,15 +309,6 @@ class SetupWizard:
             tk.Label(row, text=label, bg=self.bg, fg=self.fg,
                      font=("Segoe UI", 10)).pack(side="left")
             self.chk_labels[key] = status
-            if btn_text:
-                btn = tk.Button(
-                    row, text=btn_text, bg=self.btn_bg, fg=self.fg,
-                    activebackground=self.btn_act, activeforeground=self.fg,
-                    relief="flat", padx=8, pady=1, font=("Segoe UI", 8),
-                    cursor="hand2", command=btn_cmd,
-                )
-                btn.pack(side="right", padx=(4, 0))
-                self.chk_btns[key] = btn
 
         tk.Label(self.chk_frame,
                  text="Note: svcl.exe may trigger antivirus false positives. "

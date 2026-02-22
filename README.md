@@ -83,13 +83,13 @@ Double-click **install.bat** (if Windows hides extensions, it will just show as 
 
 The wizard has 3 steps:
 
-**Step 1 - Prerequisites:** Click the **Download** buttons next to anything marked with an X. This downloads and installs VoiceMeeter Banana and svcl.exe for you. Python packages are installed automatically.
+**Step 1 - Prerequisites:** You'll see checkmarks and X marks. Don't worry about the X marks. **Set Up Everything** (step below) handles all downloads and installs automatically.
 
 **Step 2 - Select Your Devices:** Use the dropdowns to pick your microphone and your VR headset's audio output. If your headset isn't connected yet, plug it in and click **Refresh Devices**.
 
 **Step 3 - VRChat Mic (do this later, in-game):** After setup, open VRChat and go to **Settings > Audio > Microphone** and select **"Voicemeeter Out B1"**. You only need to do this once.
 
-When you're ready, click **Set Up Everything** at the bottom. The wizard will configure everything and create desktop and startup shortcuts.
+Click **Set Up Everything** at the bottom. The wizard downloads and installs everything marked with an X, configures your audio routing, and creates desktop and startup shortcuts. If VoiceMeeter needs to be installed, it will prompt you to reboot and run the wizard again to finish.
 
 ### 6. You're done
 
