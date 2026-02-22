@@ -22,7 +22,7 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
 - **VR-synced lifecycle**: everything boots and shuts down with SteamVR automatically
 - **Tabbed interface**: Mixer, Guide, Settings, and Help all in one window
 - **Auto-updater** that checks for new versions on boot and from the Settings tab
-- **Clean uninstall** via `uninstall.bat`
+- **Clean uninstall** via `uninstall.bat` (may show as just `uninstall`)
 
 ## How It Works
 
@@ -71,13 +71,13 @@ Windows blocks files downloaded from the internet. You need to unblock the ZIP *
 5. Now right-click the ZIP file again → **Extract All** → **Extract**
 6. Open the extracted **vr-audio-switcher-main** folder (double-click into it)
 
-You should see files like `install.bat`, `README.md`, `setup_wizard.py`, etc. If file extensions are hidden, they'll show as `install`, `README`, `setup_wizard`, etc. That's fine.
+You should see files like `install.bat`, `README.md`, `setup_wizard.py`, etc. If Windows hides extensions, they'll show as `install`, `README`, `setup_wizard`, etc. That's normal.
 
 > **If you already extracted without unblocking:** Delete the extracted folder, go back to the ZIP in Downloads, unblock it (steps 3-4 above), then extract again.
 
 ### 4. Run the installer
 
-Double-click **install** (it may show as `install.bat`, same file, Windows just hides the extension sometimes). A green terminal window will open and the installer handles everything automatically:
+Double-click **install.bat** (if Windows hides extensions, it will just show as **install**). A green terminal window will open and the installer handles everything automatically:
 
 - Downloads and installs **Python** if you don't have it
 - Downloads **svcl.exe** (NirSoft per-app audio routing tool)
