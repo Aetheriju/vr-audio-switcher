@@ -478,15 +478,19 @@ class SetupWizard:
         svcl_ok = SVCL_PATH.exists()
         self._set_check("svcl", svcl_ok)
         if not svcl_ok:
-            self._log("svcl.exe missing \u2014 click Download")
+            self._log("svcl.exe missing")
 
         pkg_ok = all(self._check_pkg(p) for p in REQUIRED_PACKAGES)
         self._set_check("packages", pkg_ok)
         if not pkg_ok:
-            self._log("Some Python packages missing \u2014 click Install")
+            self._log("Some Python packages missing")
 
         if vm_ok:
             self._detect_devices()
+        else:
+            self._log("")
+            self._log("Click \"Set Up Everything\" to install missing "
+                       "prerequisites and configure your devices.")
 
     @staticmethod
     def _check_pkg(name):
