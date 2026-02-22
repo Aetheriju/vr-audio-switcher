@@ -85,7 +85,7 @@ The wizard has 3 steps:
 
 **Step 1 - Prerequisites:** You'll see checkmarks and X marks. Don't worry about the X marks. **Set Up Everything** (step below) handles all downloads and installs automatically.
 
-**Step 2 - Select Your Devices:** Use the dropdowns to pick your microphone and your VR headset's audio output. If your headset isn't connected yet, plug it in and click **Refresh Devices**.
+**Step 2 - Select Your Devices:** Use the dropdowns to pick your microphone and your VR headset's audio output. If your headset's audio isn't showing up, start SteamVR (or your VR runtime) and click **Refresh Devices**.
 
 **Step 3 - VRChat Mic (do this later, in-game):** After setup, open VRChat and go to **Settings > Audio > Microphone** and select **"Voicemeeter Out B1"**. You only need to do this once.
 

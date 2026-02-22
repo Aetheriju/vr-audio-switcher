@@ -321,8 +321,8 @@ class SetupWizard:
         ready_frame = tk.Frame(main, bg=self.hint_bg, padx=12, pady=8)
         ready_frame.pack(fill="x", pady=(0, 4))
         for instruction in [
-            "\u2022 Turn on your VR headset and make sure it's connected",
-            "\u2022 Make sure your speakers or headphones are plugged in",
+            "\u2022 Start SteamVR (or your VR runtime) so your headset audio shows up",
+            "\u2022 Make sure your speakers or headphones are active",
             "\u2022 Have VRChat installed (you'll need it for one setting)",
         ]:
             tk.Label(ready_frame, text=instruction, bg=self.hint_bg,
