@@ -58,7 +58,7 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
 
 ### 1. Download
 
-Click **Code** → **Download ZIP** on this page, or use this [direct download link](https://github.com/Aetheriju/vr-audio-switcher/archive/refs/heads/main.zip).
+[**Download VR Audio Switcher (.zip)**](https://github.com/Aetheriju/vr-audio-switcher/archive/refs/heads/main.zip)
 
 ### 2. Unblock and extract
 
