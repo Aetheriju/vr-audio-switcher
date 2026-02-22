@@ -60,28 +60,20 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
 
 Click **Code** → **Download ZIP** on this page, or use this [direct download link](https://github.com/Aetheriju/vr-audio-switcher/archive/refs/heads/main.zip).
 
-### 2. Unblock the ZIP
+### 2. Unblock and extract
 
 Windows blocks files downloaded from the internet. You need to unblock the ZIP **before extracting**:
 
-1. Find the downloaded ZIP file (usually in your **Downloads** folder)
-2. Right-click it → **Properties**
-3. At the bottom of the General tab, check the **Unblock** checkbox, then click **OK**
-
-**Don't see an "Unblock" checkbox?** You may have **Smart App Control** enabled (a newer Windows 11 feature). To turn it off:
-
-1. Open **Windows Settings** → **Privacy & security** → **Windows Security** → **App & browser control**
-2. Click **Smart App Control settings**
-3. Set it to **Off**
-
-> Smart App Control cannot be turned back on without resetting Windows, but it's not needed if you're careful about what you download. If you'd rather keep it on, you won't be able to run .bat files downloaded from the internet — you'll need to use the [Manual Setup](#manual-setup) instructions instead.
-
-### 3. Extract and open the folder
-
-1. Right-click the ZIP → **Extract All** → **Extract**
-2. Open the extracted **vr-audio-switcher-main** folder (double-click into it)
+1. Open your **Downloads** folder
+2. Find the file called **vr-audio-switcher-main.zip** (it may show as just **vr-audio-switcher-main** if extensions are hidden)
+3. **Right-click the ZIP file** (not a folder — the file you just downloaded) → **Properties**
+4. At the bottom of the General tab, check the **Unblock** checkbox → click **OK**
+5. Now right-click the ZIP file again → **Extract All** → **Extract**
+6. Open the extracted **vr-audio-switcher-main** folder (double-click into it)
 
 You should see files like `install.bat`, `README.md`, `setup_wizard.py`, etc.
+
+> **If you already extracted without unblocking:** Delete the extracted folder, go back to the ZIP in Downloads, unblock it (steps 3-4 above), then extract again.
 
 ### 4. Run the installer
 
