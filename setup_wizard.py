@@ -674,22 +674,48 @@ class SetupWizard:
                     installer = SCRIPT_DIR / exe_names[0]
                 vm_zip.unlink(missing_ok=True)
                 log("Launching VoiceMeeter installer...")
-                log("Complete the installer, then setup will continue.")
+                log("Click Install in the VoiceMeeter window.")
                 import ctypes
                 ret = ctypes.windll.shell32.ShellExecuteW(
                     None, "runas", str(installer), None, None, 1)
                 if ret <= 32:
                     raise RuntimeError(f"Failed to launch installer (code {ret})")
-                # Wait for installer process to finish
+                # Poll for VoiceMeeter DLL to appear (means install finished)
+                # rather than waiting for the installer process to exit,
+                # since the installer stays open showing the reboot dialog.
+                log("Waiting for installation to complete...")
                 time.sleep(5)
-                while True:
-                    r = subprocess.run(
-                        ["tasklist", "/FI",
-                         f"IMAGENAME eq {installer.name}"],
-                        capture_output=True, text=True)
-                    if installer.name.lower() not in r.stdout.lower():
+                for _ in range(120):  # Up to ~4 minutes
+                    if find_dll():
                         break
                     time.sleep(2)
+                time.sleep(2)
+                # Auto-close the reboot dialog and installer window
+                log("Closing installer windows...")
+                try:
+                    _close_ps = SCRIPT_DIR / "_close_vm.ps1"
+                    _close_ps.write_text(
+                        '$wshell = New-Object -ComObject wscript.shell\n'
+                        'Start-Sleep -Seconds 1\n'
+                        '$wshell.AppActivate("RESTART YOUR SYSTEM")\n'
+                        'Start-Sleep -Milliseconds 500\n'
+                        '$wshell.SendKeys("{ENTER}")\n'
+                        'Start-Sleep -Seconds 1\n'
+                        '$wshell.AppActivate("Voicemeeter Installation")\n'
+                        'Start-Sleep -Milliseconds 500\n'
+                        '$wshell.SendKeys("%{F4}")\n'
+                        'Start-Sleep -Seconds 1\n'
+                        'Stop-Process -Name VoicemeeterProSetup -Force '
+                        '-ErrorAction SilentlyContinue\n',
+                        encoding='utf-8'
+                    )
+                    subprocess.run(
+                        ["powershell", "-ExecutionPolicy", "Bypass",
+                         "-File", str(_close_ps)],
+                        timeout=15, capture_output=True)
+                    _close_ps.unlink(missing_ok=True)
+                except Exception:
+                    pass  # Non-critical, user can close manually
                 installer.unlink(missing_ok=True)
 
                 time.sleep(3)

@@ -85,8 +85,8 @@ Double-click **install.bat** (if Windows hides extensions, it will just show as 
 2. Click **Set Up Everything**
 3. The wizard downloads and installs everything automatically. Here's what to expect:
    - **VoiceMeeter Banana** will download, then its installer will pop up. You'll see a Windows security prompt (UAC) asking for permission -- click **Yes**. Then click **Install** in the VoiceMeeter installer window and wait for it to finish.
-   - When it's done, you'll see a **"REBOOT YOUR SYSTEM"** popup saying "Installation Complete and Successful!" Click **OK** to close it, then close the VoiceMeeter installer window behind it (the big window with the VoiceMeeter logo). A VB-Audio "Thank You" page may also open in your browser -- you can close that too.
-   - After you close the installer, the wizard detects that a **restart is needed** and shows a countdown. It will restart your PC automatically. After your PC reboots, the wizard re-launches on its own and picks up where it left off.
+   - When VoiceMeeter finishes installing, the wizard automatically closes the installer windows and continues. A VB-Audio "Thank You" page may open in your browser -- you can close that.
+   - If a PC restart is needed, the wizard will show a countdown, restart your PC, and re-launch itself after reboot to pick up where it left off. If no restart is needed, it moves straight to the next step.
    - The wizard then downloads a small audio routing tool (svcl.exe) and installs Python packages. This takes a few seconds.
    - Finally it detects your audio devices.
 4. Once everything is installed, pick your **microphone** and **VR headset audio** from the dropdowns. If your headset audio doesn't appear, make sure SteamVR is running and click **Refresh Devices**.
