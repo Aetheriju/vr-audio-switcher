@@ -66,7 +66,7 @@ Windows blocks files downloaded from the internet. You need to unblock the ZIP *
 
 1. Open your **Downloads** folder
 2. Find the file called **vr-audio-switcher-main.zip** (it may show as just **vr-audio-switcher-main** if extensions are hidden)
-3. **Right-click the ZIP file** (not a folder — the file you just downloaded) → **Properties**
+3. **Right-click the ZIP file** (not a folder — the file you just downloaded). A menu will appear — click **Properties**
 4. At the bottom of the General tab, check the **Unblock** checkbox → click **OK**
 5. Now right-click the ZIP file again → **Extract All** → **Extract**
 6. Open the extracted **vr-audio-switcher-main** folder (double-click into it)
