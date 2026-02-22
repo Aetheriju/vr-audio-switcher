@@ -62,14 +62,19 @@ Click **Code** → **Download ZIP** on this page, or use this [direct download l
 
 ### 2. Unblock the ZIP
 
-Windows blocks files downloaded from the internet by default. **Before extracting**, you need to unblock it:
+Windows blocks files downloaded from the internet. You need to unblock the ZIP **before extracting**:
 
 1. Find the downloaded ZIP file (usually in your **Downloads** folder)
 2. Right-click it → **Properties**
-3. At the bottom of the General tab, check the **Unblock** checkbox
-4. Click **OK**
+3. At the bottom of the General tab, check the **Unblock** checkbox, then click **OK**
 
-> If you skip this step, Windows will block the installer with a scary "Smart App Control" or "Windows protected your PC" warning. If that happens, delete the extracted folder, unblock the ZIP, and extract again.
+**Don't see an "Unblock" checkbox?** You may have **Smart App Control** enabled (a newer Windows 11 feature). To turn it off:
+
+1. Open **Windows Settings** → **Privacy & security** → **Windows Security** → **App & browser control**
+2. Click **Smart App Control settings**
+3. Set it to **Off**
+
+> Smart App Control cannot be turned back on without resetting Windows, but it's not needed if you're careful about what you download. If you'd rather keep it on, you won't be able to run .bat files downloaded from the internet — you'll need to use the [Manual Setup](#manual-setup) instructions instead.
 
 ### 3. Extract and open the folder
 
