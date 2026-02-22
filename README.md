@@ -71,7 +71,7 @@ Windows blocks files downloaded from the internet. You need to unblock the ZIP *
 5. Now right-click the ZIP file again → **Extract All** → **Extract**
 6. Open the extracted **vr-audio-switcher-main** folder (double-click into it)
 
-You should see files like `install.bat`, `README.md`, `setup_wizard.py`, etc.
+You should see files like `install.bat`, `README.md`, `setup_wizard.py`, etc. If file extensions are hidden, they'll show as `install`, `README`, `setup_wizard`, etc. That's fine.
 
 > **If you already extracted without unblocking:** Delete the extracted folder, go back to the ZIP in Downloads, unblock it (steps 3-4 above), then extract again.
 
