@@ -77,21 +77,23 @@ You should see files like `install.bat`, `README.md`, `setup_wizard.py`, etc. If
 
 ### 4. Run the installer
 
-Double-click **install.bat** (if Windows hides extensions, it will just show as **install**). A green terminal window will open and the installer handles everything automatically:
+Double-click **install.bat** (if Windows hides extensions, it will just show as **install**). A green terminal window will appear, followed by the **Setup Wizard**.
 
-- Downloads and installs **Python** if you don't have it
-- Downloads **svcl.exe** (NirSoft per-app audio routing tool)
-- Installs Python packages
-- Downloads and runs the **VoiceMeeter Banana** installer if needed
-- Detects your audio devices
-- Configures "Listen to this device" for VR audio routing
-- Creates desktop and startup shortcuts
+### 5. Walk through the Setup Wizard
 
-### 5. You're done
+The wizard has 3 steps:
+
+**Step 1 - Prerequisites:** Click the **Download** buttons next to anything marked with an X. This downloads and installs VoiceMeeter Banana and svcl.exe for you. Python packages are installed automatically.
+
+**Step 2 - Select Your Devices:** Use the dropdowns to pick your microphone and your VR headset's audio output. If your headset isn't connected yet, plug it in and click **Refresh Devices**.
+
+**Step 3 - VRChat Mic (do this later, in-game):** After setup, open VRChat and go to **Settings > Audio > Microphone** and select **"Voicemeeter Out B1"**. You only need to do this once.
+
+When you're ready, click **Set Up Everything** at the bottom. The wizard will configure everything and create desktop and startup shortcuts.
+
+### 6. You're done
 
 The app runs silently in the background and springs to life when SteamVR starts. It launches VoiceMeeter, opens the mixer UI, routes all your audio, and shuts everything down cleanly when VR stops.
-
-**First launch:** The Guide tab opens automatically with setup instructions. Set your VRChat microphone to "Voicemeeter Out B1" (this only needs to be done once).
 
 ## Manual Setup
 
