@@ -28,7 +28,7 @@ SVCL_PATH = SCRIPT_DIR / "svcl.exe"
 SVCL_URL = "https://www.nirsoft.net/utils/svcl-x64.zip"
 WIZARD_LOG_PATH = SCRIPT_DIR / "wizard.log"
 VM_DOWNLOAD_URL = ("https://download.vb-audio.com/Download_CABLE/"
-                   "VoicemeeterProSetup.exe")
+                   "VoicemeeterSetup_v2122.zip")
 RESUME_SHORTCUT = (Path(os.environ.get("APPDATA", ""))
                    / "Microsoft" / "Windows" / "Start Menu" / "Programs"
                    / "Startup" / "VR Audio Switcher Setup (resume).lnk")
@@ -661,9 +661,18 @@ class SetupWizard:
         else:
             log("Downloading VoiceMeeter installer...")
             try:
-                import urllib.request
-                installer = SCRIPT_DIR / "_VoicemeeterProSetup.exe"
-                urllib.request.urlretrieve(VM_DOWNLOAD_URL, str(installer))
+                import urllib.request, zipfile
+                vm_zip = SCRIPT_DIR / "_VoicemeeterSetup.zip"
+                urllib.request.urlretrieve(VM_DOWNLOAD_URL, str(vm_zip))
+                log("Extracting installer...")
+                with zipfile.ZipFile(str(vm_zip), 'r') as zf:
+                    exe_names = [n for n in zf.namelist()
+                                 if n.lower().endswith('.exe')]
+                    if not exe_names:
+                        raise RuntimeError("No .exe found in VoiceMeeter ZIP")
+                    zf.extract(exe_names[0], str(SCRIPT_DIR))
+                    installer = SCRIPT_DIR / exe_names[0]
+                vm_zip.unlink(missing_ok=True)
                 log("Launching VoiceMeeter installer...")
                 log("Complete the installer, then setup will continue.")
                 proc = subprocess.Popen([str(installer)])
