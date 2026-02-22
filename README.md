@@ -81,16 +81,14 @@ Double-click **install.bat** (if Windows hides extensions, it will just show as 
 
 ### 5. Walk through the Setup Wizard
 
-The wizard has 3 steps:
+1. Make sure SteamVR (or your VR runtime) is running so your headset audio is available
+2. Click **Set Up Everything**
+3. The wizard installs VoiceMeeter and other tools automatically. If VoiceMeeter needs a restart, the wizard will offer to restart your PC. After restarting, it picks up where it left off automatically.
+4. Once everything is installed, pick your **microphone** and **VR headset audio** from the dropdowns
+5. Click **Finish Setup**
+6. Click **Launch**
 
-**If this is a fresh install**, the device dropdowns will be empty and some prerequisites will show X marks. That's normal. Just click **Set Up Everything** at the bottom. It will download and install VoiceMeeter and everything else for you. You'll need to **reboot your PC** after VoiceMeeter installs, then **run install.bat again** to finish setup.
-
-**On the second run** (after reboot), everything will have checkmarks and the device dropdowns will be populated:
-
-- **Step 2 - Select Your Devices:** Pick your microphone and your VR headset's audio output from the dropdowns. If your headset's audio isn't showing up, start SteamVR (or your VR runtime) and click **Refresh Devices**.
-- **Step 3 - VRChat Mic (do this later, in-game):** After setup, open VRChat and go to **Settings > Audio > Microphone** and select **"Voicemeeter Out B1"**. You only need to do this once.
-
-Click **Set Up Everything** again to finish configuration and create desktop and startup shortcuts.
+After setup, open VRChat and go to **Settings > Audio > Microphone** and select **"Voicemeeter Out B1"**. You only need to do this once.
 
 ### 6. You're done
 
