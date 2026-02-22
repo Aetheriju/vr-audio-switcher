@@ -57,16 +57,31 @@ Works with any VR headset: Quest (via Steam Link or Virtual Desktop), Index, Viv
 ## Quick Start
 
 ### 1. Download
-```bash
-git clone https://github.com/Aetheriju/vr-audio-switcher.git
-cd vr-audio-switcher
-```
 
-Or just [download the ZIP](https://github.com/Aetheriju/vr-audio-switcher/archive/refs/heads/main.zip) and extract it.
+Click **Code** → **Download ZIP** on this page, or use this [direct download link](https://github.com/Aetheriju/vr-audio-switcher/archive/refs/heads/main.zip).
 
-### 2. Double-click `install.bat`
+### 2. Unblock the ZIP
 
-That's it. The installer handles everything automatically:
+Windows blocks files downloaded from the internet by default. **Before extracting**, you need to unblock it:
+
+1. Find the downloaded ZIP file (usually in your **Downloads** folder)
+2. Right-click it → **Properties**
+3. At the bottom of the General tab, check the **Unblock** checkbox
+4. Click **OK**
+
+> If you skip this step, Windows will block the installer with a scary "Smart App Control" or "Windows protected your PC" warning. If that happens, delete the extracted folder, unblock the ZIP, and extract again.
+
+### 3. Extract and open the folder
+
+1. Right-click the ZIP → **Extract All** → **Extract**
+2. Open the extracted **vr-audio-switcher-main** folder (double-click into it)
+
+You should see files like `install.bat`, `README.md`, `setup_wizard.py`, etc.
+
+### 4. Run the installer
+
+Double-click **install** (it may show as `install.bat` — same file, Windows just hides the extension sometimes). A green terminal window will open and the installer handles everything automatically:
+
 - Downloads and installs **Python** if you don't have it
 - Downloads **svcl.exe** (NirSoft per-app audio routing tool)
 - Installs Python packages
@@ -75,7 +90,7 @@ That's it. The installer handles everything automatically:
 - Configures "Listen to this device" for VR audio routing
 - Creates desktop and startup shortcuts
 
-### 3. You're done
+### 5. You're done
 
 The app runs silently in the background and springs to life when SteamVR starts. It launches VoiceMeeter, opens the mixer UI, routes all your audio, and shuts everything down cleanly when VR stops.
 
