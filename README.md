@@ -83,14 +83,20 @@ Double-click **install.bat** (if Windows hides extensions, it will just show as 
 
 1. Make sure SteamVR (or your VR runtime) is running so your headset audio is available
 2. Click **Set Up Everything**
-3. The wizard installs VoiceMeeter and other tools automatically. If VoiceMeeter needs a restart, the wizard will offer to restart your PC. After restarting, it picks up where it left off automatically.
-4. Once everything is installed, pick your **microphone** and **VR headset audio** from the dropdowns
-5. Click **Finish Setup**
+3. The wizard downloads and installs everything automatically. Here's what to expect:
+   - **VoiceMeeter Banana** will download, then its installer will pop up. You'll see a Windows security prompt (UAC) asking for permission -- click **Yes**. Then click **Install** in the VoiceMeeter installer window and wait for it to finish.
+   - After VoiceMeeter installs, it will ask you to **restart your PC**. The wizard handles this for you -- it will show a countdown and restart automatically. After your PC reboots, the wizard re-launches on its own and picks up where it left off.
+   - The wizard then downloads a small audio routing tool (svcl.exe) and installs Python packages. This takes a few seconds.
+   - Finally it detects your audio devices.
+4. Once everything is installed, pick your **microphone** and **VR headset audio** from the dropdowns. If your headset audio doesn't appear, make sure SteamVR is running and click **Refresh Devices**.
+5. Click **Finish Setup**. You'll see one more security prompt (UAC) to configure audio routing -- click **Yes**.
 6. Click **Launch**
 
-After setup, open VRChat and go to **Settings > Audio > Microphone** and select **"Voicemeeter Out B1"**. You only need to do this once.
+### 6. Set your VRChat mic (one time)
 
-### 6. You're done
+Open VRChat and go to **Settings > Audio > Microphone** and select **"Voicemeeter Out B1"**. You only need to do this once.
+
+### 7. You're done
 
 The app runs silently in the background and springs to life when SteamVR starts. It launches VoiceMeeter, opens the mixer UI, routes all your audio, and shuts everything down cleanly when VR stops.
 
